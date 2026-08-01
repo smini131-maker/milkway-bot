@@ -140,7 +140,10 @@ class AICog(
             public=public,
         )
 
-    @app_commands.command(name="검색", description="Google 검색으로 최신 정보를 찾아 출처와 함께 답합니다.")
+    @app_commands.command(
+        name="검색",
+        description="Google 검색으로 최신 정보를 찾습니다. 무료 등급에서는 제한될 수 있습니다.",
+    )
     @app_commands.rename(query="검색어", public="공개")
     async def search(
         self,
@@ -215,9 +218,12 @@ class AICog(
         status = "활성화" if self.bot.ai.available else "비활성화"
         quota = "봇 내부 제한 없음" if limit == 0 else f"{used}/{limit}회 사용"
         await interaction.response.send_message(
-            f"AI 상태: **{status}**\n모델: `{self.bot.settings.gemini_model}`\n"
+            f"AI 상태: **{status}**\n"
+            f"설정: `{self.bot.settings.gemini_model}`\n"
+            f"실제 사용 모델: `{self.bot.ai.active_model}`\n"
             f"오늘: `{quota}`\n"
-            "무료 Gemini 자체의 분당·일일 한도는 별도로 적용됩니다.",
+            "무료 Gemini 자체의 분당·일일 한도는 별도로 적용됩니다. "
+            "Gemini 3.x의 Google 검색 연결은 무료 등급에서 제공되지 않습니다.",
             ephemeral=True,
         )
 
