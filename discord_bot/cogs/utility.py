@@ -21,7 +21,7 @@ class UtilityCog(commands.Cog):
     async def help_command(self, interaction: discord.Interaction) -> None:
         embed = discord.Embed(
             title="🌌 Milkway Bot",
-            description="서버 운영, 대학생활, GPT 학습 도우미를 한 봇에서 처리합니다.",
+            description="서버 운영, 대학생활, Gemini 학습·검색 도우미를 한 봇에서 처리합니다.",
             color=discord.Color.blurple(),
         )
         embed.add_field(
@@ -65,9 +65,9 @@ class UtilityCog(commands.Cog):
             inline=False,
         )
         embed.add_field(
-            name="🤖 GPT 도우미",
+            name="🤖 Gemini 도우미",
             value=(
-                "`/ai ask|summarize|channel_summary|study_plan|quiz`\n"
+                "`/ai ask|search|summarize|channel_summary|study_plan|quiz`\n"
                 "`/ai polish|translate|brainstorm|usage`"
             ),
             inline=False,
