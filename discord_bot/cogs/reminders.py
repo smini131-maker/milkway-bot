@@ -19,8 +19,8 @@ LOGGER = logging.getLogger(__name__)
 
 class ReminderCog(
     commands.GroupCog,
-    group_name="remind",
-    group_description="개인 리마인더를 등록하고 관리합니다.",
+    group_name="알림",
+    group_description="개인 알림을 등록하고 관리합니다.",
 ):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -38,12 +38,13 @@ class ReminderCog(
     def _clean_message(message: str) -> str:
         cleaned = message.strip()
         if not cleaned:
-            raise ValueError("리마인더 내용을 입력하세요.")
+            raise ValueError("알림 내용을 입력하세요.")
         if len(cleaned) > 1700:
-            raise ValueError("리마인더는 1700자 이하로 입력하세요.")
+            raise ValueError("알림는 1700자 이하로 입력하세요.")
         return cleaned
 
-    @app_commands.command(name="in", description="지금부터 일정 시간이 지난 뒤 알려줍니다.")
+    @app_commands.command(name="후에", description="지금부터 일정 시간이 지난 뒤 알려줍니다.")
+    @app_commands.rename(duration="시간", message="내용")
     @app_commands.describe(duration="예: 10m, 1h30m, 2d", message="알림 내용")
     async def remind_in(
         self,
@@ -53,7 +54,7 @@ class ReminderCog(
     ) -> None:
         delta = parse_duration(duration)
         if delta.total_seconds() > 365 * 86400:
-            raise ValueError("리마인더는 최대 1년 뒤까지 설정할 수 있습니다.")
+            raise ValueError("알림는 최대 1년 뒤까지 설정할 수 있습니다.")
         due = utc_now() + delta
         reminder_id = await self.bot.db.execute(
             """
@@ -69,11 +70,12 @@ class ReminderCog(
             ),
         )
         await interaction.response.send_message(
-            f"리마인더 `#{reminder_id}` 등록 완료: <t:{int(due.timestamp())}:F> (<t:{int(due.timestamp())}:R>)",
+            f"알림 `#{reminder_id}` 등록 완료: <t:{int(due.timestamp())}:F> (<t:{int(due.timestamp())}:R>)",
             ephemeral=True,
         )
 
-    @app_commands.command(name="at", description="지정한 날짜와 시각에 알려줍니다.")
+    @app_commands.command(name="날짜", description="지정한 날짜와 시각에 알려줍니다.")
+    @app_commands.rename(when="일시", message="내용")
     @app_commands.describe(when="YYYY-MM-DD HH:MM", message="알림 내용")
     async def remind_at(
         self,
@@ -99,11 +101,11 @@ class ReminderCog(
             ),
         )
         await interaction.response.send_message(
-            f"리마인더 `#{reminder_id}` 등록 완료: <t:{int(due.timestamp())}:F> ({timezone_name})",
+            f"알림 `#{reminder_id}` 등록 완료: <t:{int(due.timestamp())}:F> ({timezone_name})",
             ephemeral=True,
         )
 
-    @app_commands.command(name="list", description="내 리마인더 목록을 확인합니다.")
+    @app_commands.command(name="보기", description="내 알림 목록을 확인합니다.")
     async def list_reminders(self, interaction: discord.Interaction) -> None:
         rows = await self.bot.db.fetch_all(
             """
@@ -115,7 +117,7 @@ class ReminderCog(
             (interaction.user.id, interaction.guild_id),
         )
         if not rows:
-            await interaction.response.send_message("등록된 리마인더가 없습니다.", ephemeral=True)
+            await interaction.response.send_message("등록된 알림가 없습니다.", ephemeral=True)
             return
         lines = []
         for row in rows:
@@ -123,13 +125,14 @@ class ReminderCog(
             preview = str(row["message"]).replace("\n", " ")[:65]
             lines.append(f"`#{row['id']}` <t:{int(due.timestamp())}:R> · {preview}")
         embed = discord.Embed(
-            title="내 리마인더",
+            title="내 알림",
             description="\n".join(lines),
             color=discord.Color.green(),
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="cancel", description="내 리마인더를 취소합니다.")
+    @app_commands.command(name="삭제", description="내 알림을 삭제합니다.")
+    @app_commands.rename(reminder_id="번호")
     async def cancel(self, interaction: discord.Interaction, reminder_id: int) -> None:
         row = await self.bot.db.fetch_one(
             """
@@ -139,14 +142,14 @@ class ReminderCog(
             (reminder_id, interaction.user.id, interaction.guild_id),
         )
         if row is None:
-            raise ValueError("취소할 수 있는 리마인더를 찾지 못했습니다.")
+            raise ValueError("취소할 수 있는 알림를 찾지 못했습니다.")
         await self.bot.db.execute("DELETE FROM reminders WHERE id = ?", (reminder_id,))
         await interaction.response.send_message(
-            f"리마인더 `#{reminder_id}`을 취소했습니다.", ephemeral=True
+            f"알림 `#{reminder_id}`을 취소했습니다.", ephemeral=True
         )
 
     async def _deliver(self, row) -> None:
-        content = f"<@{row['user_id']}> ⏰ **리마인더**\n{row['message']}"
+        content = f"<@{row['user_id']}> ⏰ **알림**\n{row['message']}"
         allowed = discord.AllowedMentions(
             everyone=False,
             roles=False,
@@ -164,13 +167,13 @@ class ReminderCog(
                 return
             except discord.DiscordException:
                 LOGGER.warning(
-                    "리마인더 #%s 채널 전송 실패, DM으로 재시도", row["id"]
+                    "알림 #%s 채널 전송 실패, DM으로 재시도", row["id"]
                 )
 
         user = self.bot.get_user(int(row["user_id"])) or await self.bot.fetch_user(
             int(row["user_id"])
         )
-        await user.send(f"⏰ **리마인더**\n{row['message']}")
+        await user.send(f"⏰ **알림**\n{row['message']}")
 
     @tasks.loop(seconds=15)
     async def reminder_worker(self) -> None:
@@ -197,7 +200,7 @@ class ReminderCog(
                     "UPDATE reminders SET failure_count = ?, sent = ? WHERE id = ?",
                     (failures, mark_sent, row["id"]),
                 )
-                LOGGER.exception("리마인더 #%s 전송 실패 (%s/5)", row["id"], failures)
+                LOGGER.exception("알림 #%s 전송 실패 (%s/5)", row["id"], failures)
 
     @reminder_worker.before_loop
     async def before_reminder_worker(self) -> None:

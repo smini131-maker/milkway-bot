@@ -71,7 +71,12 @@ class UtilityBot(commands.Bot):
             guild = discord.Object(id=self.settings.dev_guild_id)
             self.tree.copy_global_to(guild=guild)
             synced = await self.tree.sync(guild=guild)
-            LOGGER.info("개발 서버 %s에 명령어 %s개 동기화", guild.id, len(synced))
+            LOGGER.info("개발 서버 %s에 한글 명령어 %s개 동기화", guild.id, len(synced))
+
+            # 과거에 전역 등록된 영문 명령어가 남아 중복 표시되지 않도록 정리합니다.
+            self.tree.clear_commands(guild=None)
+            await self.tree.sync()
+            LOGGER.info("기존 전역 명령어 정리 완료")
         else:
             synced = await self.tree.sync()
             LOGGER.info("전역 명령어 %s개 동기화", len(synced))
@@ -82,7 +87,7 @@ class UtilityBot(commands.Bot):
             await self.change_presence(
                 activity=discord.Activity(
                     type=discord.ActivityType.watching,
-                    name="/도움말 | 대학생활·AI",
+                    name="/도움말 | 한글 명령어",
                 )
             )
 

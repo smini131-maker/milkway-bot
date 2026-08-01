@@ -74,32 +74,3 @@ def test_ai_quota_zero_is_unlimited_and_counted(tmp_path: Path) -> None:
 
     asyncio.run(scenario())
 
-
-def test_study_group_capacity(tmp_path: Path) -> None:
-    async def scenario() -> None:
-        db = Database(tmp_path / "bot.db")
-        await db.initialize()
-        study_id = await db.execute(
-            """
-            INSERT INTO study_groups(
-                guild_id, channel_id, creator_id, title, description, max_members
-            ) VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (10, 20, 1, "시험 대비", "설명", 2),
-        )
-        await db.execute(
-            "INSERT INTO study_members(study_id, user_id) VALUES (?, ?)",
-            (study_id, 1),
-        )
-        success, _, count, maximum = await db.join_study_group(
-            study_id=study_id, guild_id=10, user_id=2
-        )
-        assert success is True and count == 2 and maximum == 2
-        success, message, count, maximum = await db.join_study_group(
-            study_id=study_id, guild_id=10, user_id=3
-        )
-        assert success is False
-        assert "모두 찼" in message
-        assert count == maximum == 2
-
-    asyncio.run(scenario())

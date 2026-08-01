@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS guild_settings (
     leave_message TEXT NOT NULL DEFAULT '**{username}**님이 서버를 떠났습니다.',
     autorole_id INTEGER,
     log_channel_id INTEGER,
-    autoresponse_enabled INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -74,18 +73,6 @@ CREATE TABLE IF NOT EXISTS warnings (
 CREATE INDEX IF NOT EXISTS idx_warnings_user
 ON warnings(guild_id, user_id);
 
-CREATE TABLE IF NOT EXISTS autoresponses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    guild_id INTEGER NOT NULL,
-    trigger_text TEXT NOT NULL,
-    response_text TEXT NOT NULL,
-    match_type TEXT NOT NULL DEFAULT 'contains',
-    created_by INTEGER NOT NULL,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_autoresponses_guild
-ON autoresponses(guild_id);
 
 CREATE TABLE IF NOT EXISTS assignments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -135,41 +122,6 @@ CREATE TABLE IF NOT EXISTS timetable_entries (
 
 CREATE INDEX IF NOT EXISTS idx_timetable_user_day
 ON timetable_entries(user_id, guild_id, weekday, start_time);
-
-CREATE TABLE IF NOT EXISTS attendance_records (
-    user_id INTEGER NOT NULL,
-    guild_id INTEGER NOT NULL,
-    course TEXT NOT NULL,
-    attended INTEGER NOT NULL DEFAULT 0,
-    late INTEGER NOT NULL DEFAULT 0,
-    absent INTEGER NOT NULL DEFAULT 0,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY(user_id, guild_id, course)
-);
-
-CREATE TABLE IF NOT EXISTS study_groups (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    guild_id INTEGER NOT NULL,
-    channel_id INTEGER NOT NULL,
-    creator_id INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    max_members INTEGER NOT NULL DEFAULT 6,
-    meeting_at TEXT,
-    status TEXT NOT NULL DEFAULT 'open',
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_study_groups_guild
-ON study_groups(guild_id, status, meeting_at);
-
-CREATE TABLE IF NOT EXISTS study_members (
-    study_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    joined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY(study_id, user_id),
-    FOREIGN KEY(study_id) REFERENCES study_groups(id) ON DELETE CASCADE
-);
 
 CREATE TABLE IF NOT EXISTS ai_usage (
     user_id INTEGER NOT NULL,
@@ -333,58 +285,3 @@ class Database:
         )
         return int(row["request_count"]) if row else 0
 
-    async def join_study_group(
-        self,
-        *,
-        study_id: int,
-        guild_id: int,
-        user_id: int,
-    ) -> tuple[bool, str, int, int]:
-        async with self._write_lock:
-            return await asyncio.to_thread(
-                self._join_study_group_sync,
-                study_id,
-                guild_id,
-                user_id,
-            )
-
-    def _join_study_group_sync(
-        self,
-        study_id: int,
-        guild_id: int,
-        user_id: int,
-    ) -> tuple[bool, str, int, int]:
-        with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            group = connection.execute(
-                "SELECT * FROM study_groups WHERE id = ? AND guild_id = ?",
-                (study_id, guild_id),
-            ).fetchone()
-            if group is None:
-                connection.rollback()
-                return False, "존재하지 않는 스터디입니다.", 0, 0
-            if group["status"] != "open":
-                connection.rollback()
-                return False, "이미 마감된 스터디입니다.", 0, int(group["max_members"])
-            existing = connection.execute(
-                "SELECT 1 FROM study_members WHERE study_id = ? AND user_id = ?",
-                (study_id, user_id),
-            ).fetchone()
-            count = int(
-                connection.execute(
-                    "SELECT COUNT(*) FROM study_members WHERE study_id = ?", (study_id,)
-                ).fetchone()[0]
-            )
-            maximum = int(group["max_members"])
-            if existing:
-                connection.rollback()
-                return False, "이미 참가 중입니다.", count, maximum
-            if count >= maximum:
-                connection.rollback()
-                return False, "모집 인원이 모두 찼습니다.", count, maximum
-            connection.execute(
-                "INSERT INTO study_members(study_id, user_id) VALUES (?, ?)",
-                (study_id, user_id),
-            )
-            connection.commit()
-            return True, "참가했습니다.", count + 1, maximum

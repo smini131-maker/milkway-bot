@@ -10,6 +10,7 @@ from discord.ext import commands
 
 from discord_bot.utils.timeparse import parse_local_datetime
 
+INVITE_PERMISSIONS = 1374658194518
 _DICE_RE = re.compile(r"^(?P<count>\d{1,2})d(?P<sides>\d{1,4})$", re.IGNORECASE)
 
 
@@ -17,72 +18,71 @@ class UtilityCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
-    @app_commands.command(name="도움말", description="봇의 주요 기능과 명령어를 확인합니다.")
+    @app_commands.command(name="도움말", description="봇의 간단한 명령어 목록을 확인합니다.")
     async def help_command(self, interaction: discord.Interaction) -> None:
         embed = discord.Embed(
-            title="🌌 Milkway Bot",
-            description="서버 운영, 대학생활, Gemini 학습·검색 도우미를 한 봇에서 처리합니다.",
+            title="🌌 Milkway Bot 간단 사용법",
+            description="모든 주요 명령어를 한글로 정리했습니다.",
             color=discord.Color.blurple(),
-        )
-        embed.add_field(
-            name="⏰ 예약·리마인더",
-            value=(
-                "`/schedule interval` `/schedule daily` `/schedule weekly` `/schedule once`\n"
-                "`/schedule list|pause|resume|edit|time|delete|run`\n"
-                "`/remind in` `/remind at` `/remind list|cancel`"
-            ),
-            inline=False,
-        )
-        embed.add_field(
-            name="📢 메시지",
-            value="`/send` `/announce` `/poll` · 역할/사용자/@everyone/@here 맨션 지원",
-            inline=False,
-        )
-        embed.add_field(
-            name="⚙️ 자동화",
-            value=(
-                "`/config timezone|welcome|leave|autorole|log|show|disable`\n"
-                "`/autoresponse add|list|delete|toggle`"
-            ),
-            inline=False,
-        )
-        embed.add_field(
-            name="🛡️ 관리",
-            value=(
-                "`/mod clear|timeout|untimeout|kick|ban|unban`\n"
-                "`/mod slowmode|lock|unlock|warn|warnings|clearwarnings`"
-            ),
-            inline=False,
         )
         embed.add_field(
             name="🎓 대학생활",
             value=(
-                "`/campus dashboard|gpa|target_gpa|team|pomodoro`\n"
-                "`/assignment add|list|done|reopen|delete|clear_completed`\n"
-                "`/exam add|list|delete` `/timetable add|today|week|delete`\n"
-                "`/attendance record|status|reset` `/study create|list|join|leave|members|close`"
+                "`/과제 추가|보기|완료|삭제`\n"
+                "`/시험 추가|보기|삭제`\n"
+                "`/시간표 추가|오늘|보기|삭제`\n"
+                "`/대학생 한눈에|학점|집중`"
             ),
             inline=False,
         )
         embed.add_field(
-            name="🤖 Gemini 도우미",
+            name="🤖 Gemini",
+            value="`/인공지능 질문|검색|요약|퀴즈|사용량`",
+            inline=False,
+        )
+        embed.add_field(
+            name="⏰ 알림과 자동전송",
             value=(
-                "`/ai ask|search|summarize|channel_summary|study_plan|quiz`\n"
-                "`/ai polish|translate|brainstorm|usage`"
+                "`/알림 후에|날짜|보기|삭제`\n"
+                "`/예약 간격|매일|매주|한번|보기|삭제`"
             ),
             inline=False,
         )
         embed.add_field(
-            name="🧰 유틸리티",
+            name="📢 서버 기능",
             value=(
-                "`/ping` `/서버정보` `/유저정보` `/아바타` `/선택` `/주사위` `/동전` `/타임스탬프`"
+                "`/메시지` `/공지` `/투표`\n"
+                "`/설정 시간대|환영|퇴장|자동역할|로그|끄기|보기`\n"
+                "`/관리 삭제|타임아웃|타임아웃해제|추방|차단|차단해제|슬로우|경고|경고보기|경고삭제`"
             ),
             inline=False,
         )
-        embed.set_footer(text="관리 명령어는 Discord 권한에 따라 표시·실행됩니다.")
+        embed.add_field(
+            name="🧰 기타",
+            value="`/핑` `/초대` `/서버정보` `/사용자정보` `/아바타` `/선택` `/주사위` `/동전` `/시간`",
+            inline=False,
+        )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="ping", description="봇의 응답 지연 시간을 확인합니다.")
+    @app_commands.command(name="초대", description="Milkway Bot의 정식 서버 초대 링크를 확인합니다.")
+    async def invite(self, interaction: discord.Interaction) -> None:
+        application_id = self.bot.user.id if self.bot.user else 1533024340155699290
+        url = (
+            "https://discord.com/oauth2/authorize"
+            f"?client_id={application_id}"
+            f"&permissions={INVITE_PERMISSIONS}"
+            "&integration_type=0"
+            "&scope=bot%20applications.commands"
+        )
+        embed = discord.Embed(
+            title="🔗 Milkway Bot 초대",
+            description=f"[여기를 눌러 서버에 초대하세요]({url})",
+            color=discord.Color.blurple(),
+        )
+        embed.set_footer(text="서버 관리 권한이 있는 계정으로 열어야 서버를 선택할 수 있습니다.")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="핑", description="봇의 응답 지연 시간을 확인합니다.")
     async def ping(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_message(
             f"🏓 Pong! `{round(self.bot.latency * 1000)}ms`", ephemeral=True
@@ -105,7 +105,10 @@ class UtilityCog(commands.Cog):
         embed.add_field(name="멤버", value=str(guild.member_count or 0))
         embed.add_field(name="채널", value=str(len(guild.channels)))
         embed.add_field(name="역할", value=str(len(guild.roles)))
-        embed.add_field(name="부스트", value=f"레벨 {guild.premium_tier} · {guild.premium_subscription_count}개")
+        embed.add_field(
+            name="부스트",
+            value=f"레벨 {guild.premium_tier} · {guild.premium_subscription_count}개",
+        )
         embed.add_field(
             name="생성일",
             value=f"<t:{int(guild.created_at.timestamp())}:F>",
@@ -113,8 +116,9 @@ class UtilityCog(commands.Cog):
         )
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="유저정보", description="사용자의 서버 정보를 확인합니다.")
+    @app_commands.command(name="사용자정보", description="사용자의 서버 정보를 확인합니다.")
     @app_commands.guild_only()
+    @app_commands.rename(member="사용자")
     async def user_info(
         self,
         interaction: discord.Interaction,
@@ -138,9 +142,7 @@ class UtilityCog(commands.Cog):
         )
         embed.add_field(
             name="서버 참가",
-            value=(
-                f"<t:{int(target.joined_at.timestamp())}:F>" if target.joined_at else "확인 불가"
-            ),
+            value=f"<t:{int(target.joined_at.timestamp())}:F>" if target.joined_at else "확인 불가",
             inline=False,
         )
         embed.add_field(
@@ -149,10 +151,12 @@ class UtilityCog(commands.Cog):
             inline=False,
         )
         await interaction.response.send_message(
-            embed=embed, allowed_mentions=discord.AllowedMentions.none()
+            embed=embed,
+            allowed_mentions=discord.AllowedMentions.none(),
         )
 
     @app_commands.command(name="아바타", description="사용자의 아바타 원본을 확인합니다.")
+    @app_commands.rename(user="사용자")
     async def avatar(
         self,
         interaction: discord.Interaction,
@@ -164,6 +168,7 @@ class UtilityCog(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="선택", description="여러 선택지 중 하나를 무작위로 고릅니다.")
+    @app_commands.rename(options="선택지")
     @app_commands.describe(options="선택지를 | 로 구분하세요.")
     async def choose(self, interaction: discord.Interaction, options: str) -> None:
         parsed = [item.strip() for item in options.split("|") if item.strip()]
@@ -174,6 +179,7 @@ class UtilityCog(commands.Cog):
         await interaction.response.send_message(f"👉 **{random.choice(parsed)}**")
 
     @app_commands.command(name="주사위", description="NdM 형식의 주사위를 굴립니다.")
+    @app_commands.rename(notation="표기")
     async def dice(self, interaction: discord.Interaction, notation: str = "1d6") -> None:
         match = _DICE_RE.fullmatch(notation.strip())
         if not match:
@@ -191,9 +197,10 @@ class UtilityCog(commands.Cog):
     async def coin(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_message(f"🪙 **{random.choice(['앞면', '뒷면'])}**")
 
-    @app_commands.command(name="타임스탬프", description="Discord에서 자동 변환되는 시간 태그를 만듭니다.")
+    @app_commands.command(name="시간", description="Discord에서 자동 변환되는 시간 태그를 만듭니다.")
     @app_commands.guild_only()
-    @app_commands.describe(when="YYYY-MM-DD HH:MM", style="표시 형식")
+    @app_commands.rename(when="일시", style="형식")
+    @app_commands.describe(when="예: 2026-08-15 18:00", style="표시 형식")
     async def timestamp(
         self,
         interaction: discord.Interaction,

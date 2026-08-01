@@ -1,220 +1,216 @@
 # 🌌 Milkway Bot
 
-`Milkway Bot`은 Discord 서버 운영 기능과 대학생용 일정·학습 도구, 선택형 **Gemini AI 및 Google 검색** 기능을 한 프로젝트에 묶은 Python 봇입니다. 모든 주요 기능은 슬래시 명령어로 조작하고, 예약·과제·시험·시간표·출석·스터디·사용량 데이터는 SQLite에 저장되어 재시작 후에도 유지됩니다.
+대학생활 일정, 간단한 서버 관리, Gemini 질문·검색을 한글 슬래시 명령어로 사용하는 Discord 봇입니다.
 
-## 주요 기능
+## 정식 초대 링크
 
-### 🎓 대학생활
+[Milkway Bot을 Discord 서버에 초대하기](https://discord.com/oauth2/authorize?client_id=1533024340155699290&permissions=1374658194518&integration_type=0&scope=bot%20applications.commands)
 
-- **과제**: 등록, 마감순 목록, 완료·재개·삭제, 완료 항목 정리
-- **시험**: 시험명, 일시, 장소, 메모 관리
-- **자동 알림**: 과제와 시험 등록 시 `30m`, `1d`, `1w` 형식으로 사전 리마인더 생성
-- **시간표**: 오늘·주간 시간표, 강의실·교수 정보, 시간 충돌 검사
-- **출석**: 과목별 출석·지각·결석 누적과 결석률 확인
-- **스터디**: 서버 공개 모집, 정원 제한, 참가·탈퇴·멤버 확인·마감
-- **대시보드**: 오늘 강의와 가까운 과제·시험을 한 화면에서 확인
-- **학점 계산**: 4.5 만점 가중 평균평점, 목표 누적평점에 필요한 향후 평균
-- **팀플**: 이름 목록을 무작위로 균형 있게 팀 편성
-- **집중 관리**: 포모도로 집중·휴식 리마인더 일괄 등록
+- Discord에서 **서버 관리** 권한이 있는 계정으로 링크를 열어야 서버를 선택할 수 있습니다.
+- 초대 후 봇 프로그램을 실행해야 온라인으로 표시됩니다.
+- Discord 안에서도 `/초대` 명령으로 같은 링크를 확인할 수 있습니다.
 
-### 🤖 Gemini 학습·검색 도우미
-
-`GEMINI_API_KEY`를 설정하면 다음 명령이 활성화됩니다. 키가 없어도 AI를 제외한 기능은 모두 정상 작동합니다.
-
-- 일반 질문과 개념 설명: `/ai ask`
-- **최신 정보 Google 검색 및 출처 표시**: `/ai search`
-- 강의 노트 핵심·시험대비·발표·회의록 요약: `/ai summarize`
-- 현재 채널 최근 대화를 회의록으로 정리: `/ai channel_summary`
-- 시험일까지 학습 계획 작성: `/ai study_plan`
-- 노트 범위 안에서 복습 퀴즈와 해설 생성: `/ai quiz`
-- 공지·이메일·보고서 문장 다듬기: `/ai polish`
-- 번역: `/ai translate`
-- 공모전·팀플 아이디어 구체화: `/ai brainstorm`
-- 모델과 일일 사용량 확인: `/ai usage`
-
-기본 모델은 무료 등급을 지원하는 `gemini-2.5-flash-lite`입니다. `/ai search`는 Gemini의 Google Search grounding을 사용하고, 답변 뒤에 실제 검색 출처 링크를 표시합니다.
-
-Google 공식 가격표 기준으로 Gemini 2.5 Flash와 Flash-Lite의 Google 검색 grounding은 무료 등급에서 두 모델 합산 하루 500회까지 제공됩니다. 무료 한도와 정책은 변경될 수 있으며, 한도를 넘으면 요청이 거절되거나 결제 설정에 따라 비용이 발생할 수 있습니다.
-
-- Gemini API 가격: <https://ai.google.dev/gemini-api/docs/pricing>
-- Google 검색 grounding: <https://ai.google.dev/gemini-api/docs/google-search>
-- API 키 발급: <https://aistudio.google.com/app/apikey>
-
-### ⏰ 예약과 리마인더
-
-- 원하는 간격, 매일, 매주, 특정 날짜에 메시지 전송
-- 예약 조회·중지·재개·수정·삭제·즉시 시험 전송
-- 사용자, 역할, `@everyone`, `@here` 맨션
-- 개인 상대·절대시각 리마인더와 채널 실패 시 DM 재전송
-- 서버별 시간대, 재시작 후 유지, 반복 실패 자동 중지
-
-### 🛡️ 서버 운영
-
-- 일반 메시지, 임베드 공지, 반응 투표
-- 환영·퇴장 메시지, 자동 역할, 키워드 자동응답
-- 메시지 수정·삭제 및 관리 로그
-- 경고, 메시지 청소, 타임아웃, 추방, 차단, 슬로우모드, 채널 잠금
-- 사용자와 봇의 대상 채널 권한 이중 검사
-
-## 명령어 요약
+## 간단해진 한글 명령어
 
 | 분류 | 명령어 |
 |---|---|
-| 대학 대시보드 | `/campus dashboard`, `gpa`, `target_gpa`, `team`, `pomodoro` |
-| 과제 | `/assignment add`, `list`, `done`, `reopen`, `delete`, `clear_completed` |
-| 시험 | `/exam add`, `list`, `delete` |
-| 시간표 | `/timetable add`, `today`, `week`, `delete` |
-| 출석 | `/attendance record`, `status`, `reset` |
-| 스터디 | `/study create`, `list`, `join`, `leave`, `members`, `close` |
-| Gemini | `/ai ask`, `search`, `summarize`, `channel_summary`, `study_plan`, `quiz`, `polish`, `translate`, `brainstorm`, `usage` |
-| 예약 | `/schedule interval`, `daily`, `weekly`, `once`, `list`, `pause`, `resume`, `edit`, `time`, `delete`, `run` |
-| 리마인더 | `/remind in`, `at`, `list`, `cancel` |
-| 메시지 | `/send`, `/announce`, `/poll` |
-| 자동화 | `/config ...`, `/autoresponse ...` |
-| 관리 | `/mod ...` |
-| 기타 | `/도움말`, `/ping`, `/서버정보`, `/유저정보`, `/아바타`, `/선택`, `/주사위`, `/동전`, `/타임스탬프` |
+| 과제 | `/과제 추가`, `/과제 보기`, `/과제 완료`, `/과제 삭제` |
+| 시험 | `/시험 추가`, `/시험 보기`, `/시험 삭제` |
+| 시간표 | `/시간표 추가`, `/시간표 오늘`, `/시간표 보기`, `/시간표 삭제` |
+| 대학생활 | `/대학생 한눈에`, `/대학생 학점`, `/대학생 집중` |
+| Gemini | `/인공지능 질문`, `/인공지능 검색`, `/인공지능 요약`, `/인공지능 퀴즈`, `/인공지능 사용량` |
+| 개인 알림 | `/알림 후에`, `/알림 날짜`, `/알림 보기`, `/알림 삭제` |
+| 자동 메시지 | `/예약 간격`, `/예약 매일`, `/예약 매주`, `/예약 한번`, `/예약 보기`, `/예약 삭제` |
+| 메시지 | `/메시지`, `/공지`, `/투표` |
+| 서버 설정 | `/설정 시간대`, `/설정 환영`, `/설정 퇴장`, `/설정 자동역할`, `/설정 로그`, `/설정 끄기`, `/설정 보기` |
+| 관리 | `/관리 삭제`, `/관리 타임아웃`, `/관리 타임아웃해제`, `/관리 추방`, `/관리 차단`, `/관리 차단해제`, `/관리 슬로우`, `/관리 경고`, `/관리 경고보기`, `/관리 경고삭제` |
+| 기타 | `/도움말`, `/초대`, `/핑`, `/서버정보`, `/사용자정보`, `/아바타`, `/선택`, `/주사위`, `/동전`, `/시간` |
 
-## 설치
+다음 기능은 단순화를 위해 제거했습니다.
 
-### 1. Discord 애플리케이션
+- 스터디 모집·참가 기능
+- 출석·지각·결석 기록
+- 채널 잠금·잠금 해제
+- 예약 중지·재개
+- 예약 내용·시간 수정
+- 예약 즉시 시험 전송
+- 키워드 자동응답
+- 복잡한 AI 부가 명령
 
-1. [Discord Developer Portal](https://discord.com/developers/applications)에서 애플리케이션과 Bot을 만듭니다.
-2. Bot Token을 발급합니다. 토큰은 GitHub에 올리지 마세요.
-3. 다음 Privileged Gateway Intents를 켭니다.
-   - Server Members Intent: 환영 메시지·자동 역할
-   - Message Content Intent: 자동응답·메시지 로그
-4. OAuth2 설치 범위에서 `bot`, `applications.commands`를 선택합니다.
+## Windows 설치
 
-권장 권한: View Channels, Send Messages, Embed Links, Add Reactions, Read Message History, Manage Messages, Manage Channels, Moderate Members, Kick Members, Ban Members, Manage Roles.
+### 1. 최신 코드 내려받기
 
-### 2. 실행
-
-#### Windows PowerShell — Git 설치됨
-
-```powershell
-git clone https://github.com/smini131-maker/milkway-bot.git
-cd milkway-bot
-python -m venv .venv
-Set-ExecutionPolicy -Scope Process Bypass
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e .
-Copy-Item .env.example .env
-notepad .env
-python -m discord_bot
-```
-
-#### Windows PowerShell — Git 없음
+Git이 설치되어 있지 않아도 됩니다.
 
 ```powershell
 cd $HOME\Desktop
+Remove-Item .\milkway-bot-main -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item .\milkway-bot.zip -Force -ErrorAction SilentlyContinue
 curl.exe -L "https://github.com/smini131-maker/milkway-bot/archive/refs/heads/main.zip" -o "milkway-bot.zip"
 Expand-Archive -Path ".\milkway-bot.zip" -DestinationPath "." -Force
-Rename-Item ".\milkway-bot-main" "milkway-bot"
-cd .\milkway-bot
+cd .\milkway-bot-main
+```
+
+### 2. Python 환경 만들기
+
+Python 3.11 이상이 필요합니다. Python 3.13도 사용할 수 있습니다.
+
+```powershell
 python -m venv .venv
 Set-ExecutionPolicy -Scope Process Bypass
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e .
+```
+
+### 3. 환경변수 설정
+
+```powershell
 Copy-Item .env.example .env
 notepad .env
+```
+
+```env
+DISCORD_TOKEN=Discord_봇_토큰
+DEV_GUILD_ID=명령어를_쓸_서버_ID
+
+DATABASE_PATH=data/bot.db
+LOG_LEVEL=INFO
+ENABLE_MEMBER_INTENT=true
+ENABLE_MESSAGE_CONTENT_INTENT=true
+
+GEMINI_API_KEY=Google_AI_Studio_API_키
+GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_MAX_OUTPUT_TOKENS=1200
+AI_DAILY_USER_LIMIT=0
+```
+
+`AI_DAILY_USER_LIMIT=0`은 Milkway Bot 내부의 사용자별 제한을 해제합니다. Gemini 무료 등급 자체의 분당·일일 제한은 그대로 적용됩니다.
+
+### 4. 실행
+
+```powershell
 python -m discord_bot
 ```
 
-#### Linux / Raspberry Pi
+Discord에서 다음 순서로 확인합니다.
+
+```text
+/핑
+/도움말
+/시간표 보기
+/인공지능 검색
+```
+
+## Windows 로그인 시 자동 실행
+
+먼저 수동 실행이 정상 작동하는지 확인한 다음 아래 명령을 실행합니다.
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\deploy\install-windows-startup.ps1
+```
+
+자동 실행 상태 확인:
+
+```powershell
+Get-ScheduledTask -TaskName MilkwayBot
+```
+
+로그 확인:
+
+```powershell
+Get-Content .\data\milkway-bot.log -Wait
+```
+
+자동 실행 제거:
+
+```powershell
+.\deploy\uninstall-windows-startup.ps1
+```
+
+Windows가 종료되거나 절전 상태가 되면 봇도 오프라인이 됩니다. 노트북을 계속 켜 두기 어렵다면 Raspberry Pi 방식이 더 적합합니다.
+
+## Raspberry Pi에서 24시간 실행
 
 ```bash
 git clone https://github.com/smini131-maker/milkway-bot.git
 cd milkway-bot
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e .
+pip install -e .
 cp .env.example .env
 nano .env
-python -m discord_bot
+bash deploy/install-rpi-service.sh
 ```
 
-### 3. 환경변수
-
-최소 설정:
-
-```env
-DISCORD_TOKEN=발급받은_봇_토큰
-DEV_GUILD_ID=테스트_서버_ID
-DATABASE_PATH=data/bot.db
-```
-
-Gemini 기능 추가:
-
-```env
-GEMINI_API_KEY=Google_AI_Studio에서_발급받은_API_키
-GEMINI_MODEL=gemini-2.5-flash-lite
-GEMINI_MAX_OUTPUT_TOKENS=1200
-AI_DAILY_USER_LIMIT=20
-```
-
-- `DEV_GUILD_ID`: 개발 서버에 명령어를 즉시 동기화합니다. 배포 시 비우면 전역 등록됩니다.
-- `GEMINI_API_KEY`: Google AI Studio에서 무료로 발급할 수 있습니다.
-- `GEMINI_MODEL`: 기본값은 무료 등급과 Google 검색 grounding을 지원하는 `gemini-2.5-flash-lite`입니다.
-- `AI_DAILY_USER_LIMIT`: 사용자 1명당 서버별 하루 AI 요청 수입니다.
-- `AI_DAILY_USER_LIMIT=0`: 봇 내부 사용자 제한을 해제합니다. Gemini 자체 무료 쿼터와 요청 속도 제한은 해제되지 않습니다.
-
-## 사용 예시
-
-```text
-/assignment add course:회로이론 title:5장 연습문제 due:2026-08-10 23:59 remind_before:1d
-/exam add course:공업수학 title:중간고사 when:2026-10-20 10:00 location:공학관 301호 remind_before:1w
-/timetable add course:기초물리학 weekday:월 start:09:00 end:10:50 location:B201 professor:김교수
-/campus dashboard
-/campus gpa grades:자료구조=3:A+, 교양=2:B0, 영어=2:A0
-/study create title:공업수학 시험대비 description:매주 기출문제 풀이 max_members:6
-/ai search query:오늘 발표된 주요 AI 뉴스 알려줘
-/ai study_plan subject:회로이론 중간고사 deadline:2026-10-25 daily_minutes:90
-/ai quiz material:여기에 강의 노트를 붙여넣기 count:7 difficulty:보통
-```
-
-## Docker
+설치 후에는 Raspberry Pi가 부팅될 때 자동으로 실행되고, 오류로 종료되면 자동 재시작합니다.
 
 ```bash
-cp .env.example .env
-# .env 수정
-docker compose up -d --build
-docker compose logs -f
+sudo systemctl status milkway-bot
+sudo journalctl -u milkway-bot -f
+sudo systemctl restart milkway-bot
 ```
 
-SQLite는 `./data`에 보존됩니다.
+## 시간표 사용 예시
+
+강의 등록:
+
+```text
+/시간표 추가 과목:회로이론 요일:월 시작:09:00 종료:10:50 강의실:B201 교수:김교수
+```
+
+오늘 시간표:
+
+```text
+/시간표 오늘
+```
+
+전체 시간표:
+
+```text
+/시간표 보기
+```
+
+삭제할 때는 `/시간표 보기`에 표시되는 번호를 사용합니다.
+
+```text
+/시간표 삭제 번호:3
+```
+
+## Gemini 검색
+
+Google AI Studio에서 무료 API 키를 만든 뒤 `.env`의 `GEMINI_API_KEY`에 넣습니다.
+
+```text
+/인공지능 검색 검색어:부산 이번 주말 축제 알려줘 공개:false
+```
+
+검색 답변 뒤에는 Gemini Google Search grounding에서 받은 출처 링크가 함께 표시됩니다.
+
+## 명령어가 영어로 계속 보일 때
+
+1. `.env`의 `DEV_GUILD_ID`에 현재 Discord 서버 ID를 입력합니다.
+2. 봇을 완전히 종료했다가 다시 실행합니다.
+3. Discord를 새로고침합니다.
+
+개발 서버를 지정한 경우 봇 시작 시 과거 전역 영문 명령어를 정리하고 한글 명령어를 서버에 다시 동기화합니다.
+
+## 보안
+
+- `.env`, Discord Bot Token, Gemini API Key를 GitHub에 올리지 마세요.
+- 키가 노출되면 즉시 재발급하세요.
+- 봇 역할은 자동으로 부여할 역할보다 위에 있어야 합니다.
+- Gemini에 학번, 비밀번호, 연락처 같은 민감정보를 입력하지 마세요.
 
 ## 테스트
 
 ```bash
-python -m pip install -e ".[dev]"
+pip install -e ".[dev]"
 ruff check .
 pytest
 ```
-
-GitHub Actions는 `main` push와 Pull Request에서 Python 3.11·3.12로 검사합니다.
-
-## 24시간 운영
-
-봇은 실행 중인 PC·Raspberry Pi·서버가 꺼지면 작동하지 않습니다. Linux 상시 실행은 `deploy/milkway-bot.service.example`을 참고하세요.
-
-## 보안과 개인정보
-
-- `.env`, Discord Token, Gemini API Key를 커밋하지 마세요.
-- 키가 노출되면 Google AI Studio에서 즉시 폐기하고 새로 발급하세요.
-- 봇에게 Administrator 대신 필요한 권한만 부여하세요.
-- `/ai channel_summary`는 명령을 실행한 채널의 최근 텍스트를 Gemini API로 전송합니다.
-- `/ai search`는 질문을 Gemini API와 Google 검색 grounding에 전송합니다.
-- Gemini 무료 등급에 전송된 데이터는 Google 제품 개선에 사용될 수 있습니다. 민감한 수업 자료나 개인정보를 입력하지 마세요.
-- 민감정보, 학번, 비밀번호, 개인 연락처를 AI 명령에 입력하지 마세요.
-- AI와 검색 답변은 오류가 있을 수 있으므로 과제 제출 전 출처를 직접 확인하세요.
-- `data/bot.db`를 정기적으로 백업하세요.
-
-## 변경 내역
-
-[CHANGELOG.md](CHANGELOG.md)에서 Gemini 전환과 Google 검색 패치를 확인할 수 있습니다.
 
 ## 라이선스
 

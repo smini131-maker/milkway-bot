@@ -1,38 +1,17 @@
 from __future__ import annotations
 
-from datetime import timedelta  # noqa: F401
-from typing import Literal  # noqa: F401
-
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from discord_bot.cogs._campus_common import (  # noqa: F401
-    _WEEKDAY_LABELS,
-    _clean,
-    _guild_timezone,
-    _optional_reminder,
-)
-from discord_bot.utils.academic import (  # noqa: F401
-    calculate_gpa,
-    required_future_gpa,
-    split_teams,
-)
-from discord_bot.utils.timeparse import (  # noqa: F401
-    from_iso,
-    get_timezone,
-    parse_clock,
-    parse_duration,
-    parse_local_datetime,
-    parse_weekday,
-    to_iso,
-    utc_now,
-)
+from discord_bot.cogs._campus_common import _WEEKDAY_LABELS, _clean, _guild_timezone
+from discord_bot.utils.timeparse import get_timezone, parse_clock, parse_weekday, utc_now
+
 
 class TimetableCog(
     commands.GroupCog,
-    group_name="timetable",
-    group_description="개인 시간표를 관리합니다.",
+    group_name="시간표",
+    group_description="개인 시간표를 등록하고 확인합니다.",
 ):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -42,8 +21,16 @@ class TimetableCog(
             raise app_commands.NoPrivateMessage
         return True
 
-    @app_commands.command(name="add", description="시간표에 강의를 추가합니다.")
-    @app_commands.describe(weekday="월~일", start="HH:MM", end="HH:MM")
+    @app_commands.command(name="추가", description="시간표에 강의를 추가합니다.")
+    @app_commands.rename(
+        course="과목",
+        weekday="요일",
+        start="시작",
+        end="종료",
+        location="강의실",
+        professor="교수",
+    )
+    @app_commands.describe(weekday="월~일", start="예: 09:00", end="예: 10:50")
     async def add(
         self,
         interaction: discord.Interaction,
@@ -61,6 +48,7 @@ class TimetableCog(
         end_norm = f"{end_hm[0]:02d}:{end_hm[1]:02d}"
         if end_norm <= start_norm:
             raise ValueError("종료 시각은 시작 시각보다 늦어야 합니다.")
+
         course = _clean(course, label="과목명", maximum=80)
         overlap = await self.bot.db.fetch_one(
             """
@@ -73,6 +61,7 @@ class TimetableCog(
         )
         if overlap:
             raise ValueError(f"기존 강의 `#{overlap['id']} {overlap['course']}`와 시간이 겹칩니다.")
+
         entry_id = await self.bot.db.execute(
             """
             INSERT INTO timetable_entries(
@@ -91,7 +80,7 @@ class TimetableCog(
             ),
         )
         await interaction.response.send_message(
-            f"강의 `#{entry_id}` 추가: **{course}** · {_WEEKDAY_LABELS[day]} {start_norm}~{end_norm}",
+            f"강의 `#{entry_id}` 추가: **{course}** · {_WEEKDAY_LABELS[day]}요일 {start_norm}~{end_norm}",
             ephemeral=True,
         )
 
@@ -113,6 +102,7 @@ class TimetableCog(
         if not rows:
             await interaction.response.send_message("등록된 강의가 없습니다.", ephemeral=True)
             return
+
         grouped: dict[int, list[str]] = {}
         for row in rows:
             detail = f"`#{row['id']}` {row['start_time']}~{row['end_time']} **{row['course']}**"
@@ -121,6 +111,7 @@ class TimetableCog(
             if row["professor"]:
                 detail += f" · {row['professor']} 교수"
             grouped.setdefault(int(row["weekday"]), []).append(detail)
+
         embed = discord.Embed(title="🗓️ 내 시간표", color=discord.Color.blue())
         for day, entries in grouped.items():
             embed.add_field(
@@ -130,17 +121,18 @@ class TimetableCog(
             )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="today", description="오늘 시간표를 확인합니다.")
+    @app_commands.command(name="오늘", description="오늘 시간표를 확인합니다.")
     async def today(self, interaction: discord.Interaction) -> None:
         timezone_name = await _guild_timezone(self.bot, interaction.guild_id)
         weekday = utc_now().astimezone(get_timezone(timezone_name)).weekday()
         await self._show(interaction, weekday)
 
-    @app_commands.command(name="week", description="주간 시간표를 확인합니다.")
+    @app_commands.command(name="보기", description="일주일 전체 시간표를 확인합니다.")
     async def week(self, interaction: discord.Interaction) -> None:
         await self._show(interaction, None)
 
-    @app_commands.command(name="delete", description="시간표에서 강의를 삭제합니다.")
+    @app_commands.command(name="삭제", description="시간표에서 강의를 삭제합니다.")
+    @app_commands.rename(entry_id="번호")
     async def delete(self, interaction: discord.Interaction, entry_id: int) -> None:
         row = await self.bot.db.fetch_one(
             "SELECT id FROM timetable_entries WHERE id = ? AND user_id = ? AND guild_id = ?",

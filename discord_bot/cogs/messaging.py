@@ -33,7 +33,8 @@ class MessagingCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
-    @app_commands.command(name="send", description="봇이 지정한 채널에 메시지를 보냅니다.")
+    @app_commands.command(name="메시지", description="봇이 지정한 채널에 메시지를 보냅니다.")
+    @app_commands.rename(channel="채널", message="내용", role="역할", user="사용자", ping_everyone="전체멘션", ping_here="현재멘션")
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_messages=True)
     @app_commands.checks.has_permissions(manage_messages=True)
@@ -69,7 +70,8 @@ class MessagingCog(commands.Cog):
             f"전송 완료: {sent.jump_url}", ephemeral=True
         )
 
-    @app_commands.command(name="announce", description="깔끔한 임베드 공지를 전송합니다.")
+    @app_commands.command(name="공지", description="깔끔한 임베드 공지를 전송합니다.")
+    @app_commands.rename(channel="채널", title="제목", body="본문", color="색상", image_url="이미지", footer="하단문구", role="역할", ping_everyone="전체멘션", ping_here="현재멘션")
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_messages=True)
     @app_commands.checks.has_permissions(manage_messages=True)
@@ -137,7 +139,8 @@ class MessagingCog(commands.Cog):
             f"공지 전송 완료: {sent.jump_url}", ephemeral=True
         )
 
-    @app_commands.command(name="poll", description="반응 이모지로 투표를 만듭니다.")
+    @app_commands.command(name="투표", description="반응 이모지로 투표를 만듭니다.")
+    @app_commands.rename(question="질문", options="선택지", channel="채널")
     @app_commands.guild_only()
     @app_commands.checks.cooldown(2, 30.0)
     @app_commands.describe(

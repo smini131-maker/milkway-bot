@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 from typing import Literal
 
 import discord
@@ -31,7 +30,7 @@ def format_template(template: str, *, member: discord.Member) -> str:
 
 class AutomationCog(
     commands.GroupCog,
-    group_name="config",
+    group_name="설정",
     group_description="서버 자동화 설정을 관리합니다.",
 ):
     def __init__(self, bot: commands.Bot) -> None:
@@ -45,7 +44,8 @@ class AutomationCog(
         await self.bot.db.ensure_guild(interaction.guild_id)
         return True
 
-    @app_commands.command(name="timezone", description="예약과 리마인더에 사용할 서버 시간대를 설정합니다.")
+    @app_commands.command(name="시간대", description="예약과 알림에 사용할 서버 시간대를 설정합니다.")
+    @app_commands.rename(name="이름")
     @app_commands.describe(name="예: Asia/Seoul, Asia/Tokyo, UTC")
     async def timezone(self, interaction: discord.Interaction, name: str) -> None:
         get_timezone(name)
@@ -86,7 +86,8 @@ class AutomationCog(
             ephemeral=True,
         )
 
-    @app_commands.command(name="welcome", description="신규 멤버 환영 메시지를 설정합니다.")
+    @app_commands.command(name="환영", description="신규 멤버 환영 메시지를 설정합니다.")
+    @app_commands.rename(channel="채널", message="메시지")
     @app_commands.describe(
         channel="환영 메시지를 보낼 채널",
         message="사용 가능: {user}, {username}, {server}, {member_count}",
@@ -111,7 +112,8 @@ class AutomationCog(
             f"환영 메시지를 {channel.mention}에 설정했습니다.", ephemeral=True
         )
 
-    @app_commands.command(name="leave", description="멤버 퇴장 메시지를 설정합니다.")
+    @app_commands.command(name="퇴장", description="멤버 퇴장 메시지를 설정합니다.")
+    @app_commands.rename(channel="채널", message="메시지")
     @app_commands.describe(
         channel="퇴장 메시지를 보낼 채널",
         message="사용 가능: {username}, {server}, {member_count}",
@@ -136,7 +138,8 @@ class AutomationCog(
             f"퇴장 메시지를 {channel.mention}에 설정했습니다.", ephemeral=True
         )
 
-    @app_commands.command(name="autorole", description="신규 멤버에게 자동으로 부여할 역할을 설정합니다.")
+    @app_commands.command(name="자동역할", description="신규 멤버에게 자동으로 부여할 역할을 설정합니다.")
+    @app_commands.rename(role="역할")
     async def autorole(self, interaction: discord.Interaction, role: discord.Role) -> None:
         bot_member = interaction.guild.me
         if role.is_default() or role.managed:
@@ -151,7 +154,8 @@ class AutomationCog(
             f"신규 멤버 자동 역할을 {role.mention}(으)로 설정했습니다.", ephemeral=True
         )
 
-    @app_commands.command(name="log", description="관리 및 메시지 변경 로그 채널을 설정합니다.")
+    @app_commands.command(name="로그", description="관리 및 메시지 변경 로그 채널을 설정합니다.")
+    @app_commands.rename(channel="채널")
     async def log_channel(
         self, interaction: discord.Interaction, channel: discord.TextChannel
     ) -> None:
@@ -163,17 +167,18 @@ class AutomationCog(
             f"로그 채널을 {channel.mention}(으)로 설정했습니다.", ephemeral=True
         )
 
-    @app_commands.command(name="disable", description="선택한 자동화 기능을 끕니다.")
+    @app_commands.command(name="끄기", description="선택한 자동화 기능을 끕니다.")
+    @app_commands.rename(feature="기능")
     async def disable(
         self,
         interaction: discord.Interaction,
-        feature: Literal["welcome", "leave", "autorole", "log"],
+        feature: Literal["환영", "퇴장", "자동역할", "로그"],
     ) -> None:
         columns = {
-            "welcome": "welcome_channel_id",
-            "leave": "leave_channel_id",
-            "autorole": "autorole_id",
-            "log": "log_channel_id",
+            "환영": "welcome_channel_id",
+            "퇴장": "leave_channel_id",
+            "자동역할": "autorole_id",
+            "로그": "log_channel_id",
         }
         column = columns[feature]
         await self.bot.db.execute(
@@ -184,7 +189,7 @@ class AutomationCog(
             f"`{feature}` 기능을 껐습니다.", ephemeral=True
         )
 
-    @app_commands.command(name="show", description="현재 서버 자동화 설정을 확인합니다.")
+    @app_commands.command(name="보기", description="현재 서버 자동화 설정을 확인합니다.")
     async def show(self, interaction: discord.Interaction) -> None:
         row = await self.bot.db.fetch_one(
             "SELECT * FROM guild_settings WHERE guild_id = ?", (interaction.guild_id,)
@@ -206,10 +211,6 @@ class AutomationCog(
         embed.add_field(
             name="로그 채널",
             value=f"<#{row['log_channel_id']}>" if row["log_channel_id"] else "꺼짐",
-        )
-        embed.add_field(
-            name="자동응답",
-            value="켜짐" if row["autoresponse_enabled"] else "꺼짐",
         )
         await interaction.response.send_message(
             embed=embed,
@@ -303,156 +304,6 @@ class AutomationCog(
         await self._message_log(before.guild, embed)
 
 
-class AutoresponseCog(
-    commands.GroupCog,
-    group_name="autoresponse",
-    group_description="키워드 자동응답을 관리합니다.",
-):
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
-        self._cooldowns: dict[tuple[int, int, int], float] = {}
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.guild is None or not isinstance(interaction.user, discord.Member):
-            raise app_commands.NoPrivateMessage
-        if not interaction.user.guild_permissions.manage_guild:
-            raise app_commands.MissingPermissions(["manage_guild"])
-        await self.bot.db.ensure_guild(interaction.guild_id)
-        return True
-
-    @app_commands.command(name="add", description="키워드 자동응답을 추가합니다.")
-    async def add(
-        self,
-        interaction: discord.Interaction,
-        trigger: str,
-        response: str,
-        match_type: Literal["contains", "exact"] = "contains",
-    ) -> None:
-        trigger = trigger.strip()
-        response = response.strip()
-        if not trigger or not response:
-            raise ValueError("트리거와 응답을 모두 입력하세요.")
-        if len(trigger) > 100 or len(response) > 1800:
-            raise ValueError("트리거는 100자, 응답은 1800자 이하여야 합니다.")
-        count_row = await self.bot.db.fetch_one(
-            "SELECT COUNT(*) AS count FROM autoresponses WHERE guild_id = ?",
-            (interaction.guild_id,),
-        )
-        if int(count_row["count"]) >= 50:
-            raise ValueError("서버당 자동응답은 최대 50개입니다.")
-        duplicate = await self.bot.db.fetch_one(
-            """
-            SELECT id FROM autoresponses
-            WHERE guild_id = ? AND lower(trigger_text) = lower(?) AND match_type = ?
-            """,
-            (interaction.guild_id, trigger, match_type),
-        )
-        if duplicate:
-            raise ValueError(f"같은 자동응답이 이미 있습니다: #{duplicate['id']}")
-        response_id = await self.bot.db.execute(
-            """
-            INSERT INTO autoresponses(guild_id, trigger_text, response_text, match_type, created_by)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (interaction.guild_id, trigger, response, match_type, interaction.user.id),
-        )
-        await interaction.response.send_message(
-            f"자동응답 `#{response_id}`을 추가했습니다.", ephemeral=True
-        )
-
-    @app_commands.command(name="list", description="자동응답 목록을 확인합니다.")
-    async def list_responses(self, interaction: discord.Interaction) -> None:
-        rows = await self.bot.db.fetch_all(
-            "SELECT * FROM autoresponses WHERE guild_id = ? ORDER BY id LIMIT 50",
-            (interaction.guild_id,),
-        )
-        if not rows:
-            await interaction.response.send_message("등록된 자동응답이 없습니다.", ephemeral=True)
-            return
-        lines = [
-            f"`#{row['id']}` **{row['match_type']}** `{str(row['trigger_text'])[:35]}` → {str(row['response_text'])[:50]}"
-            for row in rows
-        ]
-        description = "\n".join(lines)
-        if len(description) > 3900:
-            description = description[:3897] + "..."
-        embed = discord.Embed(
-            title="자동응답 목록",
-            description=description,
-            color=discord.Color.teal(),
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    @app_commands.command(name="delete", description="자동응답을 삭제합니다.")
-    async def delete(self, interaction: discord.Interaction, response_id: int) -> None:
-        row = await self.bot.db.fetch_one(
-            "SELECT id FROM autoresponses WHERE id = ? AND guild_id = ?",
-            (response_id, interaction.guild_id),
-        )
-        if row is None:
-            raise ValueError("해당 자동응답을 찾을 수 없습니다.")
-        await self.bot.db.execute("DELETE FROM autoresponses WHERE id = ?", (response_id,))
-        await interaction.response.send_message(
-            f"자동응답 `#{response_id}`을 삭제했습니다.", ephemeral=True
-        )
-
-    @app_commands.command(name="toggle", description="자동응답 기능 전체를 켜거나 끕니다.")
-    async def toggle(self, interaction: discord.Interaction, enabled: bool) -> None:
-        await self.bot.db.execute(
-            "UPDATE guild_settings SET autoresponse_enabled = ? WHERE guild_id = ?",
-            (1 if enabled else 0, interaction.guild_id),
-        )
-        await interaction.response.send_message(
-            f"자동응답을 {'켰습니다' if enabled else '껐습니다'}.", ephemeral=True
-        )
-
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message) -> None:
-        if message.guild is None or message.author.bot or not message.content:
-            return
-        settings = await self.bot.db.fetch_one(
-            "SELECT autoresponse_enabled FROM guild_settings WHERE guild_id = ?",
-            (message.guild.id,),
-        )
-        if settings is None:
-            await self.bot.db.ensure_guild(message.guild.id)
-        elif not settings["autoresponse_enabled"]:
-            return
-
-        rows = await self.bot.db.fetch_all(
-            "SELECT * FROM autoresponses WHERE guild_id = ? ORDER BY id",
-            (message.guild.id,),
-        )
-        content = message.content.casefold().strip()
-        now = time.monotonic()
-        for row in rows:
-            trigger = str(row["trigger_text"]).casefold()
-            matched = content == trigger if row["match_type"] == "exact" else trigger in content
-            if not matched:
-                continue
-            key = (message.guild.id, message.channel.id, int(row["id"]))
-            if now - self._cooldowns.get(key, 0) < 10:
-                return
-            self._cooldowns[key] = now
-            response = str(row["response_text"])
-            replacements = {
-                "{user}": message.author.mention,
-                "{username}": message.author.display_name,
-                "{server}": message.guild.name,
-            }
-            for placeholder, value in replacements.items():
-                response = response.replace(placeholder, value)
-            await message.channel.send(
-                response[:1900],
-                allowed_mentions=discord.AllowedMentions(
-                    everyone=False,
-                    roles=False,
-                    users=[message.author],
-                ),
-            )
-            return
-
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(AutomationCog(bot))
-    await bot.add_cog(AutoresponseCog(bot))

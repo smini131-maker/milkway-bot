@@ -11,8 +11,8 @@ from discord_bot.utils.timeparse import human_duration, parse_duration
 
 class ModerationCog(
     commands.GroupCog,
-    group_name="mod",
-    group_description="서버 관리 및 제재 명령어입니다.",
+    group_name="관리",
+    group_description="서버 관리 명령어입니다.",
 ):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -55,7 +55,8 @@ class ModerationCog(
         except discord.DiscordException:
             pass
 
-    @app_commands.command(name="clear", description="최근 메시지를 일괄 삭제합니다.")
+    @app_commands.command(name="삭제", description="최근 메시지를 일괄 삭제합니다.")
+    @app_commands.rename(count="개수")
     @app_commands.default_permissions(manage_messages=True)
     @app_commands.checks.has_permissions(manage_messages=True)
     @app_commands.checks.bot_has_permissions(manage_messages=True, read_message_history=True)
@@ -75,7 +76,8 @@ class ModerationCog(
             f"{interaction.user.mention}님이 {interaction.channel.mention}에서 {len(deleted)}개를 삭제했습니다.",
         )
 
-    @app_commands.command(name="timeout", description="사용자를 일정 시간 타임아웃합니다.")
+    @app_commands.command(name="타임아웃", description="사용자를 일정 시간 타임아웃합니다.")
+    @app_commands.rename(member="사용자", duration="시간", reason="사유")
     @app_commands.default_permissions(moderate_members=True)
     @app_commands.checks.has_permissions(moderate_members=True)
     @app_commands.checks.bot_has_permissions(moderate_members=True)
@@ -103,7 +105,8 @@ class ModerationCog(
             f"대상: {member.mention}\n기간: {human_duration(delta)}\n담당: {interaction.user.mention}\n사유: {reason}",
         )
 
-    @app_commands.command(name="untimeout", description="사용자의 타임아웃을 해제합니다.")
+    @app_commands.command(name="타임아웃해제", description="사용자의 타임아웃을 해제합니다.")
+    @app_commands.rename(member="사용자")
     @app_commands.default_permissions(moderate_members=True)
     @app_commands.checks.has_permissions(moderate_members=True)
     @app_commands.checks.bot_has_permissions(moderate_members=True)
@@ -119,7 +122,8 @@ class ModerationCog(
             f"대상: {member.mention}\n담당: {interaction.user.mention}",
         )
 
-    @app_commands.command(name="kick", description="사용자를 서버에서 추방합니다.")
+    @app_commands.command(name="추방", description="사용자를 서버에서 추방합니다.")
+    @app_commands.rename(member="사용자", reason="사유")
     @app_commands.default_permissions(kick_members=True)
     @app_commands.checks.has_permissions(kick_members=True)
     @app_commands.checks.bot_has_permissions(kick_members=True)
@@ -140,7 +144,8 @@ class ModerationCog(
             f"대상: {member} (`{member.id}`)\n담당: {interaction.user.mention}\n사유: {reason}",
         )
 
-    @app_commands.command(name="ban", description="사용자를 서버에서 차단합니다.")
+    @app_commands.command(name="차단", description="사용자를 서버에서 차단합니다.")
+    @app_commands.rename(member="사용자", reason="사유", delete_days="삭제일수")
     @app_commands.default_permissions(ban_members=True)
     @app_commands.checks.has_permissions(ban_members=True)
     @app_commands.checks.bot_has_permissions(ban_members=True)
@@ -165,7 +170,8 @@ class ModerationCog(
             f"대상: {member} (`{member.id}`)\n담당: {interaction.user.mention}\n사유: {reason}",
         )
 
-    @app_commands.command(name="unban", description="사용자 ID로 차단을 해제합니다.")
+    @app_commands.command(name="차단해제", description="사용자 ID로 차단을 해제합니다.")
+    @app_commands.rename(user_id="사용자아이디")
     @app_commands.default_permissions(ban_members=True)
     @app_commands.checks.has_permissions(ban_members=True)
     @app_commands.checks.bot_has_permissions(ban_members=True)
@@ -183,7 +189,8 @@ class ModerationCog(
             f"대상: {user} (`{user.id}`)\n담당: {interaction.user.mention}",
         )
 
-    @app_commands.command(name="slowmode", description="채널 슬로우모드를 설정합니다. 0은 해제입니다.")
+    @app_commands.command(name="슬로우", description="채널 슬로우모드를 설정합니다. 0은 해제입니다.")
+    @app_commands.rename(seconds="초", channel="채널")
     @app_commands.default_permissions(manage_channels=True)
     @app_commands.checks.has_permissions(manage_channels=True)
     @app_commands.checks.bot_has_permissions(manage_channels=True)
@@ -202,45 +209,8 @@ class ModerationCog(
             f"{target.mention} 슬로우모드를 {text}했습니다.", ephemeral=True
         )
 
-    @app_commands.command(name="lock", description="채널에서 @everyone의 메시지 전송을 막습니다.")
-    @app_commands.default_permissions(manage_channels=True)
-    @app_commands.checks.has_permissions(manage_channels=True)
-    @app_commands.checks.bot_has_permissions(manage_channels=True)
-    async def lock(
-        self,
-        interaction: discord.Interaction,
-        channel: discord.TextChannel | None = None,
-    ) -> None:
-        target = channel or interaction.channel
-        if not isinstance(target, discord.TextChannel):
-            raise ValueError("텍스트 채널을 선택하세요.")
-        await target.set_permissions(
-            interaction.guild.default_role,
-            send_messages=False,
-            reason=f"{interaction.user}: 채널 잠금",
-        )
-        await interaction.response.send_message(f"🔒 {target.mention} 채널을 잠갔습니다.")
-
-    @app_commands.command(name="unlock", description="채널의 @everyone 전송 제한을 초기화합니다.")
-    @app_commands.default_permissions(manage_channels=True)
-    @app_commands.checks.has_permissions(manage_channels=True)
-    @app_commands.checks.bot_has_permissions(manage_channels=True)
-    async def unlock(
-        self,
-        interaction: discord.Interaction,
-        channel: discord.TextChannel | None = None,
-    ) -> None:
-        target = channel or interaction.channel
-        if not isinstance(target, discord.TextChannel):
-            raise ValueError("텍스트 채널을 선택하세요.")
-        await target.set_permissions(
-            interaction.guild.default_role,
-            send_messages=None,
-            reason=f"{interaction.user}: 채널 잠금 해제",
-        )
-        await interaction.response.send_message(f"🔓 {target.mention} 채널 잠금을 해제했습니다.")
-
-    @app_commands.command(name="warn", description="사용자에게 경고를 기록합니다.")
+    @app_commands.command(name="경고", description="사용자에게 경고를 기록합니다.")
+    @app_commands.rename(member="사용자", reason="사유")
     @app_commands.default_permissions(moderate_members=True)
     @app_commands.checks.has_permissions(moderate_members=True)
     async def warn(
@@ -273,7 +243,8 @@ class ModerationCog(
             f"대상: {member.mention}\n담당: {interaction.user.mention}\n사유: {cleaned_reason}",
         )
 
-    @app_commands.command(name="warnings", description="사용자의 경고 기록을 확인합니다.")
+    @app_commands.command(name="경고보기", description="사용자의 경고 기록을 확인합니다.")
+    @app_commands.rename(member="사용자")
     @app_commands.default_permissions(moderate_members=True)
     @app_commands.checks.has_permissions(moderate_members=True)
     async def warnings(self, interaction: discord.Interaction, member: discord.Member) -> None:
@@ -310,7 +281,8 @@ class ModerationCog(
             allowed_mentions=discord.AllowedMentions.none(),
         )
 
-    @app_commands.command(name="clearwarnings", description="사용자의 모든 경고 기록을 삭제합니다.")
+    @app_commands.command(name="경고삭제", description="사용자의 모든 경고 기록을 삭제합니다.")
+    @app_commands.rename(member="사용자")
     @app_commands.default_permissions(administrator=True)
     @app_commands.checks.has_permissions(administrator=True)
     async def clear_warnings(

@@ -18,6 +18,6 @@ git push -u origin main
 업로드 후 확인:
 
 - Actions 탭에서 Python 3.11·3.12 CI 통과 여부
-- `.env`, Discord Token, OpenAI API Key가 커밋되지 않았는지
+- `.env`, Discord Token, Gemini API Key가 커밋되지 않았는지
 - 실제 실행 환경의 `.env`에만 비밀 키가 저장되었는지
 - `data/bot.db`가 Git에서 제외되는지
