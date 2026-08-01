@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "milkway-bot"
+version = "1.1.0"
+description = "A Discord campus assistant with persistent scheduling, moderation, student tools, and optional OpenAI integration."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "smini131-maker" }]
+dependencies = [
+  "discord.py==2.7.1",
+  "python-dotenv>=1.0,<2.0",
+  "tzdata>=2025.2",
+  "openai>=1.66,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<10",
+  "ruff>=0.9,<1.0",
+]
+
+[project.scripts]
+milkway-bot = "discord_bot.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["discord_bot*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]

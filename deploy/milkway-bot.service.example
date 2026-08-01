@@ -1,0 +1,16 @@
+[Unit]
+Description=Milkway Discord Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=discordbot
+WorkingDirectory=/opt/milkway-bot
+EnvironmentFile=/opt/milkway-bot/.env
+ExecStart=/opt/milkway-bot/.venv/bin/python -m discord_bot
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

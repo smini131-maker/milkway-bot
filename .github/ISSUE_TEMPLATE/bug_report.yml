@@ -1,0 +1,37 @@
+name: Bug report
+description: 오류를 제보합니다.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 오류 내용
+      description: 무엇을 실행했고 어떤 문제가 발생했는지 적어 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 재현 방법
+      placeholder: |
+        1. /schedule ... 실행
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python 버전
+      placeholder: Python 3.12.4
+  - type: input
+    id: platform
+    attributes:
+      label: 실행 환경
+      placeholder: Windows 11, Ubuntu 24.04, Docker 등
+  - type: textarea
+    id: logs
+    attributes:
+      label: 로그
+      description: 토큰과 개인정보를 제거한 뒤 붙여 넣어 주세요.
+      render: shell
