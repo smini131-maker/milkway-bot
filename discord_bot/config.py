@@ -25,11 +25,19 @@ def _as_int(value: str | None, default: int, *, minimum: int, maximum: int) -> i
     return parsed
 
 
+def _display_name(value: str | None) -> str:
+    name = (value or "은하").strip() or "은하"
+    if not 2 <= len(name) <= 32:
+        raise RuntimeError("BOT_DISPLAY_NAME은 2~32자여야 합니다.")
+    return name
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     token: str
     database_path: Path
     dev_guild_id: int | None
+    bot_display_name: str
     log_level: str
     enable_member_intent: bool
     enable_message_content_intent: bool
@@ -62,6 +70,7 @@ class Settings:
             token=token,
             database_path=database_path,
             dev_guild_id=dev_guild_id,
+            bot_display_name=_display_name(os.getenv("BOT_DISPLAY_NAME")),
             log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
             enable_member_intent=_as_bool(os.getenv("ENABLE_MEMBER_INTENT"), True),
             enable_message_content_intent=_as_bool(
