@@ -25,8 +25,10 @@ def _as_int(value: str | None, default: int, *, minimum: int, maximum: int) -> i
     return parsed
 
 
-def _display_name(value: str | None) -> str:
-    name = (value or "은하").strip() or "은하"
+def _display_name(value: str | None) -> str | None:
+    if value is None or not value.strip():
+        return None
+    name = value.strip()
     if not 2 <= len(name) <= 32:
         raise RuntimeError("BOT_DISPLAY_NAME은 2~32자여야 합니다.")
     return name
@@ -37,7 +39,7 @@ class Settings:
     token: str
     database_path: Path
     dev_guild_id: int | None
-    bot_display_name: str
+    bot_display_name: str | None
     log_level: str
     enable_member_intent: bool
     enable_message_content_intent: bool
