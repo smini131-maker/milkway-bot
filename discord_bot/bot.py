@@ -8,7 +8,7 @@ from discord.ext import commands
 
 from discord_bot.config import Settings
 from discord_bot.database import Database
-from discord_bot.services.gemini_service import AIService
+from discord_bot.services.ai_service import AIService
 
 LOGGER = logging.getLogger(__name__)
 
@@ -53,9 +53,13 @@ class UtilityBot(commands.Bot):
         self.settings = settings
         self.db = Database(settings.database_path)
         self.ai = AIService(
-            api_key=settings.gemini_api_key,
-            model=settings.gemini_model,
-            max_output_tokens=settings.gemini_max_output_tokens,
+            provider=settings.ai_provider,
+            groq_api_key=settings.groq_api_key,
+            groq_model=settings.groq_model,
+            groq_search_model=settings.groq_search_model,
+            gemini_api_key=settings.gemini_api_key,
+            gemini_model=settings.gemini_model,
+            max_output_tokens=settings.ai_max_output_tokens,
         )
         self._identity_applied = False
 
@@ -74,7 +78,6 @@ class UtilityBot(commands.Bot):
             synced = await self.tree.sync(guild=guild)
             LOGGER.info("개발 서버 %s에 한글 명령어 %s개 동기화", guild.id, len(synced))
 
-            # 과거에 전역 등록된 영문 명령어가 남아 중복 표시되지 않도록 정리합니다.
             self.tree.clear_commands(guild=None)
             await self.tree.sync()
             LOGGER.info("기존 전역 명령어 정리 완료")
@@ -88,7 +91,6 @@ class UtilityBot(commands.Bot):
         self._identity_applied = True
         desired = self.settings.bot_display_name
 
-        # BOT_DISPLAY_NAME이 비어 있으면 Developer Portal과 서버의 현재 이름을 그대로 유지합니다.
         if desired is None:
             LOGGER.info("BOT_DISPLAY_NAME 미설정: 현재 Discord 봇 이름 유지")
             return
@@ -123,6 +125,12 @@ class UtilityBot(commands.Bot):
         if self.user:
             await self._apply_display_name()
             LOGGER.info("로그인 완료: %s (%s)", self.user, self.user.id)
+            LOGGER.info(
+                "AI 공급자: %s | 일반 모델: %s | 검색 모델: %s",
+                self.ai.provider_name,
+                self.ai.active_model,
+                self.ai.active_search_model,
+            )
             await self.change_presence(
                 activity=discord.Activity(
                     type=discord.ActivityType.watching,
