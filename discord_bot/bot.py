@@ -57,6 +57,7 @@ class UtilityBot(commands.Bot):
             model=settings.gemini_model,
             max_output_tokens=settings.gemini_max_output_tokens,
         )
+        self._identity_applied = False
 
     async def close(self) -> None:
         await self.ai.close()
@@ -81,8 +82,43 @@ class UtilityBot(commands.Bot):
             synced = await self.tree.sync()
             LOGGER.info("전역 명령어 %s개 동기화", len(synced))
 
+    async def _apply_display_name(self) -> None:
+        if self._identity_applied or self.user is None:
+            return
+        self._identity_applied = True
+        desired = self.settings.bot_display_name
+
+        # 봇 전용 관리 역할의 표시명은 봇 사용자명을 따라가므로 먼저 전역 사용자명을 바꿉니다.
+        if self.user.name != desired:
+            try:
+                await self.user.edit(username=desired)
+                LOGGER.info("Discord 봇 사용자명을 '%s'(으)로 변경", desired)
+            except discord.HTTPException:
+                LOGGER.warning(
+                    "봇 사용자명을 '%s'(으)로 변경하지 못했습니다. "
+                    "Discord Developer Portal의 Bot > Username에서 직접 변경하세요.",
+                    desired,
+                    exc_info=True,
+                )
+
+        # 서버마다 별명이 따로 설정되어 있어도 동일하게 보이도록 맞춥니다.
+        for guild in self.guilds:
+            member = guild.me
+            if member is None or member.nick == desired:
+                continue
+            try:
+                await member.edit(nick=desired, reason="Milkway Bot 표시 이름 동기화")
+            except (discord.Forbidden, discord.HTTPException):
+                LOGGER.warning(
+                    "서버 %s에서 봇 별명을 '%s'(으)로 변경하지 못했습니다.",
+                    guild.id,
+                    desired,
+                    exc_info=True,
+                )
+
     async def on_ready(self) -> None:
         if self.user:
+            await self._apply_display_name()
             LOGGER.info("로그인 완료: %s (%s)", self.user, self.user.id)
             await self.change_presence(
                 activity=discord.Activity(
