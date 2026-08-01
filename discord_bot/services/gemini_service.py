@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 from google import genai
 from google.genai import errors, types
+
+LOGGER = logging.getLogger(__name__)
 
 
 class AIUnavailableError(RuntimeError):
@@ -105,17 +108,34 @@ class AIService:
             )
         except errors.APIError as exc:
             code = getattr(exc, "code", None)
-            if code == 429:
+            detail = str(getattr(exc, "message", "") or exc)
+            LOGGER.warning("Gemini API 오류 code=%s detail=%s", code, detail)
+
+            if code == 401:
+                if self.api_key and self.api_key.startswith("AQ."):
+                    message = (
+                        "Gemini AQ 인증 키가 Google에서 거부되었습니다. "
+                        "google-genai를 최신 버전으로 업데이트한 뒤 다시 시도하고, "
+                        "계속 실패하면 AI Studio에서 개인 프로젝트의 새 키를 만드세요."
+                    )
+                else:
+                    message = "Gemini API 키가 유효하지 않거나 인증에 실패했습니다."
+            elif code == 403:
+                message = "Gemini API 키에 이 프로젝트 또는 모델을 사용할 권한이 없습니다."
+            elif code == 400:
+                message = "Gemini 요청 또는 모델 설정이 올바르지 않습니다."
+            elif code == 404:
+                message = "설정한 Gemini 모델을 찾을 수 없습니다. GEMINI_MODEL을 확인하세요."
+            elif code == 429:
                 message = (
                     "Gemini 무료 사용량 또는 요청 속도 한도에 도달했습니다. "
                     "잠시 후 다시 시도하거나 Google AI Studio의 사용량을 확인하세요."
                 )
-            elif code in {400, 401, 403}:
-                message = "Gemini API 키 또는 모델 설정이 올바르지 않습니다."
             else:
-                message = "Gemini API 요청에 실패했습니다. API 키와 모델 설정을 확인하세요."
+                message = "Gemini API 요청에 실패했습니다. 터미널의 상세 오류를 확인하세요."
             raise AIRequestError(message) from exc
         except Exception as exc:
+            LOGGER.exception("Gemini API 연결 오류")
             raise AIRequestError(
                 "Gemini API에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 시도하세요."
             ) from exc
