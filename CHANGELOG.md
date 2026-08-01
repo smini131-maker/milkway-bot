@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0 - 2026-08-01
+
+### Gemini 및 Google 검색 전환
+
+- OpenAI SDK와 API 키 설정을 제거하고 Google Gen AI SDK로 교체
+- 기본 무료 모델을 `gemini-2.5-flash-lite`로 설정
+- `/ai search` 추가: Google Search grounding으로 최신 정보를 검색하고 출처 링크 표시
+- 일반 `/ai ask`와 검색 명령을 분리해 검색 무료 쿼터의 불필요한 소모 방지
+- Gemini API 오류, 인증 오류, 무료 쿼터 초과를 사용자 친화적 메시지로 처리
+- `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_MAX_OUTPUT_TOKENS` 환경변수 추가
+- `AI_DAILY_USER_LIMIT=0`으로 봇 내부 사용자 제한 해제 지원
+- 봇 종료 시 Gemini 비동기 HTTP 클라이언트 정상 종료
+- README에 Google AI Studio 키 발급, 무료 검색 쿼터, Git 없는 Windows 설치법 추가
+
 ## 1.1.0 - 2026-08-01
 
 ### 대학생 기능
@@ -15,7 +29,7 @@
 - 무작위 균형 팀 편성
 - 포모도로 집중·휴식 알림 자동 등록
 
-### GPT 연동
+### AI 연동
 
 - `/ai ask`: 일반 학습·대학생활 질문
 - `/ai summarize`: 핵심·시험대비·발표·회의록 요약
@@ -27,7 +41,6 @@
 - `/ai brainstorm`: 공모전·팀플 아이디어 구체화
 - `/ai usage`: 모델, 활성화 상태, 일일 사용량 확인
 - 사용자별 서버별 일일 요청 제한, 실패 요청 자동 환불
-- 선택적 입력 Moderation과 `store=False` 적용
 - API 키가 없을 때 일반 봇 기능은 그대로 작동
 
 ### 안정성
