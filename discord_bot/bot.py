@@ -8,7 +8,7 @@ from discord.ext import commands
 
 from discord_bot.config import Settings
 from discord_bot.database import Database
-from discord_bot.services.openai_service import AIService
+from discord_bot.services.gemini_service import AIService
 
 LOGGER = logging.getLogger(__name__)
 
@@ -53,11 +53,14 @@ class UtilityBot(commands.Bot):
         self.settings = settings
         self.db = Database(settings.database_path)
         self.ai = AIService(
-            api_key=settings.openai_api_key,
-            model=settings.openai_model,
-            max_output_tokens=settings.openai_max_output_tokens,
-            moderation_enabled=settings.openai_moderation_enabled,
+            api_key=settings.gemini_api_key,
+            model=settings.gemini_model,
+            max_output_tokens=settings.gemini_max_output_tokens,
         )
+
+    async def close(self) -> None:
+        await self.ai.close()
+        await super().close()
 
     async def setup_hook(self) -> None:
         await self.db.initialize()
