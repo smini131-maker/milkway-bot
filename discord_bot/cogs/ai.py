@@ -6,7 +6,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from discord_bot.services.gemini_service import AIRequestError, AIUnavailableError
+from discord_bot.services.ai_service import AIRequestError, AIUnavailableError
 from discord_bot.utils.timeparse import get_timezone, utc_now
 
 _BASE_INSTRUCTIONS = """
@@ -39,7 +39,7 @@ def _split_message(text: str, limit: int = 1900) -> list[str]:
 class AICog(
     commands.GroupCog,
     group_name="인공지능",
-    group_description="Gemini 질문·검색·요약·퀴즈 기능입니다.",
+    group_description="무료 AI 질문·검색·요약·퀴즈 기능입니다.",
 ):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -122,7 +122,7 @@ class AICog(
                 allowed_mentions=discord.AllowedMentions.none(),
             )
 
-    @app_commands.command(name="질문", description="Gemini에게 일반 질문을 합니다.")
+    @app_commands.command(name="질문", description="AI에게 일반 질문을 합니다.")
     @app_commands.rename(question="내용", public="공개")
     async def ask(
         self,
@@ -140,10 +140,7 @@ class AICog(
             public=public,
         )
 
-    @app_commands.command(
-        name="검색",
-        description="Google 검색으로 최신 정보를 찾습니다. 무료 등급에서는 제한될 수 있습니다.",
-    )
+    @app_commands.command(name="검색", description="웹 검색으로 최신 정보를 찾아 출처와 함께 답합니다.")
     @app_commands.rename(query="검색어", public="공개")
     async def search(
         self,
@@ -156,7 +153,7 @@ class AICog(
             interaction,
             prompt=query,
             instructions=(
-                f"현재 날짜는 {today}입니다. Google 검색 결과를 바탕으로 최신 정보를 정확하게 정리하세요. "
+                f"현재 날짜는 {today}입니다. 웹 검색 결과를 바탕으로 최신 정보를 정확하게 정리하세요. "
                 "날짜·수치·고유명사를 확인하고 검색에서 확인되지 않는 내용은 추측하지 마세요."
             ),
             public=public,
@@ -206,7 +203,7 @@ class AICog(
             max_output_tokens=min(2600, 500 + count * 180),
         )
 
-    @app_commands.command(name="사용량", description="Gemini 상태와 오늘 사용량을 확인합니다.")
+    @app_commands.command(name="사용량", description="AI 연결 상태와 오늘 사용량을 확인합니다.")
     async def usage(self, interaction: discord.Interaction) -> None:
         usage_date = await self._usage_date(interaction)
         used = await self.bot.db.ai_usage_count(
@@ -219,11 +216,11 @@ class AICog(
         quota = "봇 내부 제한 없음" if limit == 0 else f"{used}/{limit}회 사용"
         await interaction.response.send_message(
             f"AI 상태: **{status}**\n"
-            f"설정: `{self.bot.settings.gemini_model}`\n"
-            f"실제 사용 모델: `{self.bot.ai.active_model}`\n"
+            f"공급자: **{self.bot.ai.provider_name}**\n"
+            f"일반 모델: `{self.bot.ai.active_model}`\n"
+            f"검색 모델: `{self.bot.ai.active_search_model}`\n"
             f"오늘: `{quota}`\n"
-            "무료 Gemini 자체의 분당·일일 한도는 별도로 적용됩니다. "
-            "Gemini 3.x의 Google 검색 연결은 무료 등급에서 제공되지 않습니다.",
+            "각 공급자의 무료 분당·일일 한도는 별도로 적용됩니다.",
             ephemeral=True,
         )
 
