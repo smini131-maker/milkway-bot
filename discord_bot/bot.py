@@ -14,7 +14,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 ROOT_COMMAND_RENAMES = {
-    "인공지능": "ai",
     "대학생": "학교",
     "메시지": "전송",
     "서버정보": "서버",
@@ -26,7 +25,7 @@ GROUP_COMMAND_RENAMES = {
     "시험": {"보기": "목록"},
     "시간표": {"보기": "전체"},
     "학교": {"한눈에": "오늘"},
-    "ai": {"사용량": "상태"},
+    "인공지능": {"사용량": "상태"},
     "알림": {"보기": "목록"},
     "예약": {"간격": "반복", "보기": "목록"},
     "설정": {"자동역할": "역할", "보기": "확인"},
@@ -40,7 +39,6 @@ GROUP_COMMAND_RENAMES = {
 }
 
 ROOT_DESCRIPTION_OVERRIDES = {
-    "ai": "AI 질문·검색·요약·퀴즈 기능입니다.",
     "학교": "오늘 일정, 학점 계산, 집중 타이머를 사용합니다.",
     "전송": "봇이 지정한 채널에 메시지를 보냅니다.",
     "서버": "현재 서버 정보를 확인합니다.",
@@ -48,9 +46,9 @@ ROOT_DESCRIPTION_OVERRIDES = {
 }
 
 CHILD_DESCRIPTION_OVERRIDES = {
-    ("ai", "질문"): "AI에게 일반 질문을 합니다.",
-    ("ai", "검색"): "웹에서 최신 정보를 찾아 출처와 함께 답합니다.",
-    ("ai", "상태"): "AI 연결 상태, 모델, 오늘 사용량을 확인합니다.",
+    ("인공지능", "질문"): "일반 질문을 합니다.",
+    ("인공지능", "검색"): "웹에서 최신 정보를 찾아 출처와 함께 답합니다.",
+    ("인공지능", "상태"): "연결 상태, 모델, 오늘 사용량을 확인합니다.",
     ("학교", "오늘"): "오늘 강의와 가까운 과제·시험을 한 번에 봅니다.",
     ("예약", "반복"): "정한 간격마다 메시지를 자동 전송합니다.",
     ("관리", "정리"): "현재 채널의 최근 메시지를 여러 개 삭제합니다.",
@@ -144,7 +142,11 @@ class UtilityBot(commands.Bot):
             for old_name, new_name in renames.items():
                 command = group.get_command(old_name)
                 if command is None:
-                    LOGGER.warning("이름을 바꿀 하위 명령어를 찾지 못했습니다: /%s %s", group_name, old_name)
+                    LOGGER.warning(
+                        "이름을 바꿀 하위 명령어를 찾지 못했습니다: /%s %s",
+                        group_name,
+                        old_name,
+                    )
                     continue
                 group.remove_command(old_name)
                 self._set_command_name(command, new_name)
@@ -165,6 +167,22 @@ class UtilityBot(commands.Bot):
                 )
 
         LOGGER.info("슬래시 명령어 이름 간소화 완료")
+
+    def _flatten_question_commands(self) -> None:
+        group = self.tree.get_command("인공지능")
+        if not isinstance(group, app_commands.Group):
+            LOGGER.warning("질문 명령어 그룹을 찾지 못했습니다.")
+            return
+
+        self.tree.remove_command("인공지능")
+        for command in list(group.commands):
+            if self.tree.get_command(command.name) is not None:
+                raise RuntimeError(f"최상위 명령어 이름이 중복됩니다: /{command.name}")
+            group.remove_command(command.name)
+            command.parent = None
+            self.tree.add_command(command)
+
+        LOGGER.info("질문·검색 명령어를 최상위 명령어로 변경 완료")
 
     def _install_concise_help(self) -> None:
         self.tree.remove_command("도움말")
@@ -187,8 +205,8 @@ class UtilityBot(commands.Bot):
                 inline=False,
             )
             embed.add_field(
-                name="🤖 AI",
-                value="`/ai 질문|검색|요약|퀴즈|상태`",
+                name="💬 질문·검색",
+                value="`/질문` `/검색` `/요약` `/퀴즈` `/상태`",
                 inline=False,
             )
             embed.add_field(
@@ -234,6 +252,7 @@ class UtilityBot(commands.Bot):
             await self.load_extension(extension)
 
         self._simplify_command_names()
+        self._flatten_question_commands()
         self._install_concise_help()
 
         if self.settings.dev_guild_id:
