@@ -6,7 +6,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from discord_bot.services.openai_service import AIRequestError, AIUnavailableError
+from discord_bot.services.gemini_service import AIRequestError, AIUnavailableError
 from discord_bot.utils.timeparse import get_timezone, utc_now
 
 _BASE_INSTRUCTIONS = """
@@ -40,7 +40,7 @@ def _split_message(text: str, limit: int = 1900) -> list[str]:
 class AICog(
     commands.GroupCog,
     group_name="ai",
-    group_description="GPT 기반 대학생활·학습 도우미입니다.",
+    group_description="Gemini 기반 대학생활·학습·검색 도우미입니다.",
 ):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -62,21 +62,24 @@ class AICog(
         instructions: str,
         public: bool,
         max_output_tokens: int | None = None,
+        use_search: bool = False,
     ) -> None:
         usage_date = await self._usage_date(interaction)
+        limit = self.bot.settings.ai_daily_user_limit
         allowed, used = await self.bot.db.consume_ai_quota(
             user_id=interaction.user.id,
             guild_id=interaction.guild_id,
             usage_date=usage_date,
-            limit=self.bot.settings.ai_daily_user_limit,
+            limit=limit,
         )
         if not allowed:
-            message = f"오늘 AI 사용 한도 `{used}/{self.bot.settings.ai_daily_user_limit}`를 모두 사용했습니다."
+            message = f"오늘 AI 사용 한도 `{used}/{limit}`를 모두 사용했습니다."
             if interaction.response.is_done():
                 await interaction.followup.send(message, ephemeral=True)
             else:
                 await interaction.response.send_message(message, ephemeral=True)
             return
+        quota_consumed = True
 
         if not interaction.response.is_done():
             await interaction.response.defer(thinking=True, ephemeral=not public)
@@ -85,24 +88,27 @@ class AICog(
                 prompt=prompt,
                 instructions=f"{_BASE_INSTRUCTIONS}\n\n{instructions.strip()}",
                 max_output_tokens=max_output_tokens,
+                use_search=use_search,
             )
         except (AIUnavailableError, AIRequestError, ValueError) as exc:
-            await self.bot.db.refund_ai_quota(
-                user_id=interaction.user.id,
-                guild_id=interaction.guild_id,
-                usage_date=usage_date,
-            )
+            if quota_consumed:
+                await self.bot.db.refund_ai_quota(
+                    user_id=interaction.user.id,
+                    guild_id=interaction.guild_id,
+                    usage_date=usage_date,
+                )
             await interaction.followup.send(str(exc), ephemeral=True)
             return
         except Exception:
-            await self.bot.db.refund_ai_quota(
-                user_id=interaction.user.id,
-                guild_id=interaction.guild_id,
-                usage_date=usage_date,
-            )
+            if quota_consumed:
+                await self.bot.db.refund_ai_quota(
+                    user_id=interaction.user.id,
+                    guild_id=interaction.guild_id,
+                    usage_date=usage_date,
+                )
             raise
 
-        chunks = _split_message(result)
+        chunks = _split_message(result.text)
         for index, chunk in enumerate(chunks):
             prefix = "🤖 " if index == 0 else ""
             await interaction.followup.send(
@@ -111,7 +117,18 @@ class AICog(
                 allowed_mentions=discord.AllowedMentions.none(),
             )
 
-    @app_commands.command(name="ask", description="GPT에게 대학생활이나 학습 관련 질문을 합니다.")
+        if result.sources:
+            source_lines = []
+            for index, source in enumerate(result.sources, start=1):
+                title = source.title.replace("[", "").replace("]", "")[:120]
+                source_lines.append(f"{index}. [{title}]({source.url})")
+            await interaction.followup.send(
+                "🔎 **검색 출처**\n" + "\n".join(source_lines),
+                ephemeral=not public,
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
+
+    @app_commands.command(name="ask", description="Gemini에게 대학생활이나 학습 관련 질문을 합니다.")
     @app_commands.describe(public="답변을 채널에 공개할지 여부")
     async def ask(
         self,
@@ -127,6 +144,30 @@ class AICog(
                 "수학·과학 문제는 답만 주지 말고 핵심 풀이 과정을 설명하세요."
             ),
             public=public,
+        )
+
+    @app_commands.command(
+        name="search",
+        description="Gemini가 Google 검색으로 최신 정보를 찾아 출처와 함께 답합니다.",
+    )
+    @app_commands.describe(query="검색할 질문", public="답변과 출처를 채널에 공개할지 여부")
+    async def search(
+        self,
+        interaction: discord.Interaction,
+        query: str,
+        public: bool = False,
+    ) -> None:
+        today = await self._usage_date(interaction)
+        await self._generate(
+            interaction,
+            prompt=query,
+            instructions=(
+                f"현재 날짜는 {today}입니다. Google 검색 결과를 바탕으로 최신 정보를 정확하게 정리하세요. "
+                "검색 결과에서 확인할 수 없는 내용은 추측하지 말고, 날짜·수치·고유명사는 특히 신중히 확인하세요. "
+                "답변 본문에는 출처 번호를 억지로 만들지 마세요. 실제 링크는 봇이 별도로 표시합니다."
+            ),
+            public=public,
+            use_search=True,
         )
 
     @app_commands.command(name="summarize", description="긴 글이나 강의 노트를 목적에 맞게 요약합니다.")
@@ -304,10 +345,15 @@ class AICog(
         )
         limit = self.bot.settings.ai_daily_user_limit
         status = "활성화" if self.bot.ai.available else "비활성화"
+        if limit == 0:
+            usage_text = f"오늘 사용 기록: `{used}` · 봇 내부 제한: **없음**"
+        else:
+            usage_text = f"오늘 사용: `{used}/{limit}` · 남은 횟수: `{max(0, limit - used)}`"
         await interaction.response.send_message(
-            f"AI 상태: **{status}**\n모델: `{self.bot.settings.openai_model}`\n"
-            f"오늘 사용: `{used}/{limit}` · 남은 횟수: `{max(0, limit - used)}`\n"
-            "AI 명령에 입력한 내용은 응답 생성을 위해 OpenAI API로 전송됩니다.",
+            f"AI 상태: **{status}**\n모델: `{self.bot.settings.gemini_model}`\n"
+            f"{usage_text}\n"
+            "`/ai search`는 Google 검색 grounding을 사용하며 Gemini 무료 등급의 외부 쿼터가 별도로 적용됩니다.\n"
+            "AI 명령에 입력한 내용은 응답 생성을 위해 Google Gemini API로 전송됩니다.",
             ephemeral=True,
         )
 
