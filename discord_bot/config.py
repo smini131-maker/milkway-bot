@@ -62,8 +62,8 @@ class Settings:
             or None
         )
         gemini_model = (
-            os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite").strip()
-            or "gemini-2.5-flash-lite"
+            os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+            or "gemini-2.5-flash"
         )
 
         return cls(
