@@ -7,23 +7,24 @@
 [Milkway Bot을 Discord 서버에 초대하기](https://discord.com/oauth2/authorize?client_id=1533024340155699290&permissions=1374658194518&integration_type=0&scope=bot%20applications.commands)
 
 - Discord에서 **서버 관리** 권한이 있는 계정으로 링크를 열어야 서버를 선택할 수 있습니다.
-- 초대 후 봇 프로그램을 호스팅 서버에서 실행해야 온라인으로 표시됩니다.
+- 초대한 뒤 봇 프로그램을 실행해야 온라인으로 표시됩니다.
 - Discord 안에서도 `/초대` 명령으로 같은 링크를 확인할 수 있습니다.
 
-## 봇 이름과 역할 표시를 `은하`로 맞추기
+## 봇 표시 이름
 
-사진처럼 봇 프로필의 전용 역할 이름까지 `은하`로 보이게 하려면 Discord Developer Portal에서 해당 애플리케이션을 연 뒤 다음 두 곳을 변경하세요.
-
-1. `General Information → Name`: `은하`
-2. `Bot → Username`: `은하`
-
-코드도 `.env`의 아래 설정을 읽어 시작할 때 봇 사용자명과 서버 별명을 `은하`로 맞춥니다.
+기본 권장 이름은 `Milkway Bot`입니다.
 
 ```env
-BOT_DISPLAY_NAME=은하
+BOT_DISPLAY_NAME=Milkway Bot
 ```
 
-Discord가 사용자명 변경을 제한하거나 즉시 반영하지 않는 경우에는 Developer Portal의 `Bot → Username`에서 직접 저장한 뒤 봇을 재시작하세요. 일반 서버 역할인 `관리자`를 임의로 이름 변경하지는 않습니다.
+이 값이 있으면 실행할 때 봇 사용자명과 각 서버의 별명을 해당 값으로 맞춥니다. 이름을 코드에서 자동 변경하지 않고 Discord Developer Portal과 서버의 현재 이름을 그대로 유지하려면 아래처럼 비워 두세요.
+
+```env
+BOT_DISPLAY_NAME=
+```
+
+일반 서버 역할인 `관리자`의 이름은 변경하지 않습니다. Discord가 사용자명 변경을 제한하면 Developer Portal의 `Bot → Username`에서 직접 `Milkway Bot`으로 저장하세요.
 
 ## 간단한 한글 명령어
 
@@ -50,101 +51,9 @@ Discord가 사용자명 변경을 제한하거나 즉시 반영하지 않는 경
 - 키워드 자동응답
 - 복잡한 AI 부가 명령
 
-## 권장 무료 호스팅: Oracle Cloud Always Free
+## Windows에서 시험 실행
 
-이 봇은 SQLite에 과제·시간표·예약 정보를 저장하므로, 일정 시간 후 꺼지거나 로컬 파일이 사라지는 무료 웹 호스팅보다 **Oracle Cloud Always Free Ubuntu VM**이 적합합니다.
-
-Oracle 계정 등록과 VM 생성은 사용자가 직접 해야 합니다. 저장소에는 Oracle Ubuntu VM에서 자동 실행되도록 설치하는 스크립트가 포함되어 있습니다.
-
-### 1. Oracle Cloud 계정 및 VM 생성
-
-1. Oracle Cloud Free Tier 계정을 만듭니다.
-2. 홈 리전을 선택합니다. Always Free 컴퓨트는 홈 리전에서 생성해야 합니다.
-3. `Compute → Instances → Create instance`로 이동합니다.
-4. 이미지로 Ubuntu를 선택합니다.
-5. Shape는 `Always Free eligible`이 표시되는 `VM.Standard.A1.Flex` 또는 사용 가능한 Always Free Shape를 선택합니다.
-6. SSH 키를 생성해 개인 키를 안전하게 저장합니다.
-7. Public IPv4가 할당된 상태로 VM을 생성합니다.
-
-Discord 봇은 외부에서 들어오는 웹 포트를 열 필요가 없습니다. Discord로 나가는 연결과 SSH 접속만 있으면 됩니다.
-
-### 2. Windows PowerShell에서 Oracle VM 접속
-
-Oracle에서 받은 개인 키 파일과 VM의 공인 IP를 사용합니다.
-
-```powershell
-ssh -i "C:\키파일\ssh-key.key" ubuntu@공인_IP
-```
-
-Ubuntu 이미지의 기본 접속 계정은 `ubuntu`입니다.
-
-### 3. Oracle VM에 봇 설치
-
-SSH 접속 후 아래 명령을 한 줄씩 실행합니다.
-
-```bash
-sudo apt-get update
-sudo apt-get install -y git
-
-git clone https://github.com/smini131-maker/milkway-bot.git
-cd milkway-bot
-cp .env.example .env
-nano .env
-```
-
-`.env` 예시:
-
-```env
-DISCORD_TOKEN=Discord_봇_토큰
-DEV_GUILD_ID=명령어를_쓸_서버_ID
-BOT_DISPLAY_NAME=은하
-
-DATABASE_PATH=data/bot.db
-LOG_LEVEL=INFO
-ENABLE_MEMBER_INTENT=true
-ENABLE_MESSAGE_CONTENT_INTENT=true
-
-GEMINI_API_KEY=Google_AI_Studio_API_키
-GEMINI_MODEL=gemini-2.5-flash-lite
-GEMINI_MAX_OUTPUT_TOKENS=1200
-AI_DAILY_USER_LIMIT=0
-```
-
-저장 후 설치 스크립트를 실행합니다.
-
-```bash
-bash deploy/install-oracle-cloud.sh
-```
-
-이 스크립트는 Python 가상환경과 패키지를 설치하고, `systemd`에 봇을 등록해 VM 부팅 시 자동 실행 및 오류 발생 시 자동 재시작하도록 설정합니다.
-
-### 4. 실행 상태 확인
-
-```bash
-sudo systemctl status milkway-bot
-sudo journalctl -u milkway-bot -f
-```
-
-재시작:
-
-```bash
-sudo systemctl restart milkway-bot
-```
-
-업데이트:
-
-```bash
-cd ~/milkway-bot
-git pull
-.venv/bin/python -m pip install -e .
-sudo systemctl restart milkway-bot
-```
-
-Oracle VM이 실행 중인 동안 Windows 노트북을 꺼도 봇은 온라인 상태를 유지합니다.
-
-## Windows에서 먼저 시험 실행
-
-Git이 설치되어 있지 않아도 ZIP으로 시험할 수 있습니다.
+Git이 설치되어 있지 않아도 ZIP으로 실행할 수 있습니다.
 
 ```powershell
 cd $HOME\Desktop
@@ -163,7 +72,73 @@ notepad .env
 python -m discord_bot
 ```
 
-Windows가 종료되거나 절전 상태가 되면 이 방식의 봇도 오프라인이 됩니다. 실제 상시 운영은 Oracle Cloud 배포를 사용하세요.
+Windows가 종료되거나 절전 상태가 되면 봇도 오프라인이 됩니다.
+
+## 환경설정 예시
+
+```env
+DISCORD_TOKEN=Discord_봇_토큰
+DEV_GUILD_ID=명령어를_쓸_서버_ID
+BOT_DISPLAY_NAME=Milkway Bot
+
+DATABASE_PATH=data/bot.db
+LOG_LEVEL=INFO
+ENABLE_MEMBER_INTENT=true
+ENABLE_MESSAGE_CONTENT_INTENT=true
+
+GEMINI_API_KEY=Google_AI_Studio_API_키
+GEMINI_MODEL=auto
+GEMINI_MAX_OUTPUT_TOKENS=1200
+AI_DAILY_USER_LIMIT=0
+```
+
+`GEMINI_MODEL=auto`는 해당 API 키로 실제 사용할 수 있는 최신 일반 Flash 모델을 자동 선택합니다.
+
+## Oracle Cloud 무료 VM 배포
+
+SQLite 데이터를 유지하면서 노트북을 꺼도 봇을 계속 실행하려면 Oracle Cloud Always Free Ubuntu VM을 사용할 수 있습니다.
+
+### 1. VM 생성
+
+1. Oracle Cloud Free Tier 계정을 만듭니다.
+2. `Compute → Instances → Create instance`로 이동합니다.
+3. Ubuntu와 `Always Free eligible` Shape를 선택합니다.
+4. 공인 IPv4를 할당합니다.
+5. SSH 개인 키를 내려받아 안전하게 보관합니다.
+
+### 2. Windows에서 접속
+
+```powershell
+ssh -i "C:\키파일\ssh-key.key" ubuntu@공인_IP
+```
+
+### 3. 설치
+
+```bash
+sudo apt-get update
+sudo apt-get install -y git
+git clone https://github.com/smini131-maker/milkway-bot.git
+cd milkway-bot
+cp .env.example .env
+nano .env
+bash deploy/install-oracle-cloud.sh
+```
+
+### 4. 상태와 로그
+
+```bash
+sudo systemctl status milkway-bot
+sudo journalctl -u milkway-bot -f
+```
+
+업데이트:
+
+```bash
+cd ~/milkway-bot
+git pull
+.venv/bin/python -m pip install -e .
+sudo systemctl restart milkway-bot
+```
 
 ## 시간표 사용 예시
 
@@ -174,21 +149,22 @@ Windows가 종료되거나 절전 상태가 되면 이 방식의 봇도 오프�
 /시간표 삭제 번호:3
 ```
 
-## Gemini 검색
+## Gemini
 
-Google AI Studio에서 무료 API 키를 만든 뒤 `.env`의 `GEMINI_API_KEY`에 넣습니다.
+Google AI Studio에서 API 키를 만든 뒤 `.env`의 `GEMINI_API_KEY`에 넣습니다.
 
 ```text
-/인공지능 검색 검색어:부산 이번 주말 축제 알려줘 공개:false
+/인공지능 질문 내용:회로이론의 키르히호프 법칙을 설명해줘
+/인공지능 사용량
 ```
 
-`AI_DAILY_USER_LIMIT=0`은 봇 내부 제한만 해제합니다. Gemini 무료 등급 자체의 분당·일일 제한은 유지됩니다.
+`AI_DAILY_USER_LIMIT=0`은 봇 내부 제한만 해제합니다. Google의 무료 등급 제한은 별도로 적용됩니다. Google 검색 연결은 선택된 모델과 프로젝트의 결제 등급에 따라 제한될 수 있습니다.
 
 ## 명령어가 영어로 보일 때
 
 1. `.env`의 `DEV_GUILD_ID`에 현재 Discord 서버 ID를 입력합니다.
 2. 봇을 완전히 종료했다가 다시 실행합니다.
-3. Discord를 새로고침합니다.
+3. Discord를 `Ctrl + R`로 새로고침합니다.
 
 ## 보안
 
