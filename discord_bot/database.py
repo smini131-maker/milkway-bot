@@ -285,7 +285,7 @@ class Database:
                 (user_id, guild_id, usage_date),
             ).fetchone()
             current = int(row["request_count"]) if row else 0
-            if current >= limit:
+            if limit > 0 and current >= limit:
                 connection.rollback()
                 return False, current
             new_count = current + 1
