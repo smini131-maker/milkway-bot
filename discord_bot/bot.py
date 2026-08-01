@@ -88,7 +88,11 @@ class UtilityBot(commands.Bot):
         self._identity_applied = True
         desired = self.settings.bot_display_name
 
-        # 봇 전용 관리 역할의 표시명은 봇 사용자명을 따라가므로 먼저 전역 사용자명을 바꿉니다.
+        # BOT_DISPLAY_NAME이 비어 있으면 Developer Portal과 서버의 현재 이름을 그대로 유지합니다.
+        if desired is None:
+            LOGGER.info("BOT_DISPLAY_NAME 미설정: 현재 Discord 봇 이름 유지")
+            return
+
         if self.user.name != desired:
             try:
                 await self.user.edit(username=desired)
@@ -101,7 +105,6 @@ class UtilityBot(commands.Bot):
                     exc_info=True,
                 )
 
-        # 서버마다 별명이 따로 설정되어 있어도 동일하게 보이도록 맞춥니다.
         for guild in self.guilds:
             member = guild.me
             if member is None or member.nick == desired:
