@@ -13,6 +13,54 @@ from discord_bot.services.ai_service import AIService
 LOGGER = logging.getLogger(__name__)
 
 
+ROOT_COMMAND_RENAMES = {
+    "인공지능": "ai",
+    "대학생": "학교",
+    "메시지": "전송",
+    "서버정보": "서버",
+    "사용자정보": "사용자",
+}
+
+GROUP_COMMAND_RENAMES = {
+    "과제": {"보기": "목록"},
+    "시험": {"보기": "목록"},
+    "시간표": {"보기": "전체"},
+    "학교": {"한눈에": "오늘"},
+    "ai": {"사용량": "상태"},
+    "알림": {"보기": "목록"},
+    "예약": {"간격": "반복", "보기": "목록"},
+    "설정": {"자동역할": "역할", "보기": "확인"},
+    "관리": {
+        "삭제": "정리",
+        "타임아웃": "제한",
+        "타임아웃해제": "제한해제",
+        "경고보기": "경고목록",
+        "경고삭제": "경고초기화",
+    },
+}
+
+ROOT_DESCRIPTION_OVERRIDES = {
+    "ai": "AI 질문·검색·요약·퀴즈 기능입니다.",
+    "학교": "오늘 일정, 학점 계산, 집중 타이머를 사용합니다.",
+    "전송": "봇이 지정한 채널에 메시지를 보냅니다.",
+    "서버": "현재 서버 정보를 확인합니다.",
+    "사용자": "사용자의 서버 정보를 확인합니다.",
+}
+
+CHILD_DESCRIPTION_OVERRIDES = {
+    ("ai", "질문"): "AI에게 일반 질문을 합니다.",
+    ("ai", "검색"): "웹에서 최신 정보를 찾아 출처와 함께 답합니다.",
+    ("ai", "상태"): "AI 연결 상태, 모델, 오늘 사용량을 확인합니다.",
+    ("학교", "오늘"): "오늘 강의와 가까운 과제·시험을 한 번에 봅니다.",
+    ("예약", "반복"): "정한 간격마다 메시지를 자동 전송합니다.",
+    ("관리", "정리"): "현재 채널의 최근 메시지를 여러 개 삭제합니다.",
+    ("관리", "제한"): "사용자를 일정 시간 동안 채팅 제한합니다.",
+    ("관리", "제한해제"): "사용자의 채팅 제한을 해제합니다.",
+    ("관리", "경고목록"): "사용자의 경고 기록을 확인합니다.",
+    ("관리", "경고초기화"): "사용자의 경고 기록을 모두 삭제합니다.",
+}
+
+
 class UtilityCommandTree(app_commands.CommandTree):
     async def on_error(
         self,
@@ -63,6 +111,119 @@ class UtilityBot(commands.Bot):
         )
         self._identity_applied = False
 
+    @staticmethod
+    def _set_command_name(command: app_commands.Command | app_commands.Group, name: str) -> None:
+        command.name = name
+        command._locale_name = None
+
+    @staticmethod
+    def _set_command_description(
+        command: app_commands.Command | app_commands.Group,
+        description: str,
+    ) -> None:
+        command.description = description
+        command._locale_description = None
+
+    def _simplify_command_names(self) -> None:
+        for old_name, new_name in ROOT_COMMAND_RENAMES.items():
+            command = self.tree.get_command(old_name)
+            if command is None:
+                LOGGER.warning("이름을 바꿀 명령어를 찾지 못했습니다: /%s", old_name)
+                continue
+            self.tree.remove_command(old_name)
+            self._set_command_name(command, new_name)
+            if new_name in ROOT_DESCRIPTION_OVERRIDES:
+                self._set_command_description(command, ROOT_DESCRIPTION_OVERRIDES[new_name])
+            self.tree.add_command(command, override=True)
+
+        for group_name, renames in GROUP_COMMAND_RENAMES.items():
+            group = self.tree.get_command(group_name)
+            if not isinstance(group, app_commands.Group):
+                LOGGER.warning("명령어 그룹을 찾지 못했습니다: /%s", group_name)
+                continue
+            for old_name, new_name in renames.items():
+                command = group.get_command(old_name)
+                if command is None:
+                    LOGGER.warning("이름을 바꿀 하위 명령어를 찾지 못했습니다: /%s %s", group_name, old_name)
+                    continue
+                group.remove_command(old_name)
+                self._set_command_name(command, new_name)
+                description = CHILD_DESCRIPTION_OVERRIDES.get((group_name, new_name))
+                if description:
+                    self._set_command_description(command, description)
+                group.add_command(command, override=True)
+
+        for group_name, command_name in CHILD_DESCRIPTION_OVERRIDES:
+            group = self.tree.get_command(group_name)
+            if not isinstance(group, app_commands.Group):
+                continue
+            command = group.get_command(command_name)
+            if command is not None:
+                self._set_command_description(
+                    command,
+                    CHILD_DESCRIPTION_OVERRIDES[(group_name, command_name)],
+                )
+
+        LOGGER.info("슬래시 명령어 이름 간소화 완료")
+
+    def _install_concise_help(self) -> None:
+        self.tree.remove_command("도움말")
+
+        @app_commands.command(name="도움말", description="자주 쓰는 명령어를 한눈에 확인합니다.")
+        async def concise_help(interaction: discord.Interaction) -> None:
+            embed = discord.Embed(
+                title="🌌 Milkway Bot 명령어",
+                description="`/`를 입력한 뒤 아래 이름을 선택하세요.",
+                color=discord.Color.blurple(),
+            )
+            embed.add_field(
+                name="🎓 학교",
+                value=(
+                    "`/학교 오늘` `/학교 학점` `/학교 집중`\n"
+                    "`/과제 추가|목록|완료|삭제`\n"
+                    "`/시험 추가|목록|삭제`\n"
+                    "`/시간표 추가|오늘|전체|삭제`"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="🤖 AI",
+                value="`/ai 질문|검색|요약|퀴즈|상태`",
+                inline=False,
+            )
+            embed.add_field(
+                name="⏰ 알림·예약",
+                value=(
+                    "`/알림 후에|날짜|목록|삭제`\n"
+                    "`/예약 반복|매일|매주|한번|목록|삭제`"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="📢 전송·설정",
+                value=(
+                    "`/전송` `/공지` `/투표`\n"
+                    "`/설정 시간대|환영|퇴장|역할|로그|끄기|확인`"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="🛡️ 관리",
+                value=(
+                    "`/관리 정리|제한|제한해제|추방|차단|차단해제`\n"
+                    "`/관리 슬로우|경고|경고목록|경고초기화`"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="🧰 기타",
+                value="`/핑` `/초대` `/서버` `/사용자` `/아바타` `/선택` `/주사위` `/동전` `/시간`",
+                inline=False,
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        self.tree.add_command(concise_help, override=True)
+
     async def close(self) -> None:
         await self.ai.close()
         await super().close()
@@ -72,11 +233,14 @@ class UtilityBot(commands.Bot):
         for extension in EXTENSIONS:
             await self.load_extension(extension)
 
+        self._simplify_command_names()
+        self._install_concise_help()
+
         if self.settings.dev_guild_id:
             guild = discord.Object(id=self.settings.dev_guild_id)
             self.tree.copy_global_to(guild=guild)
             synced = await self.tree.sync(guild=guild)
-            LOGGER.info("개발 서버 %s에 한글 명령어 %s개 동기화", guild.id, len(synced))
+            LOGGER.info("개발 서버 %s에 간단 명령어 %s개 동기화", guild.id, len(synced))
 
             self.tree.clear_commands(guild=None)
             await self.tree.sync()
@@ -134,7 +298,7 @@ class UtilityBot(commands.Bot):
             await self.change_presence(
                 activity=discord.Activity(
                     type=discord.ActivityType.watching,
-                    name="/도움말 | 한글 명령어",
+                    name="/도움말 | 간단 명령어",
                 )
             )
 
