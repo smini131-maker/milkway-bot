@@ -34,6 +34,13 @@ def _display_name(value: str | None) -> str | None:
     return name
 
 
+def _ai_provider(value: str | None) -> str:
+    provider = (value or "auto").strip().lower() or "auto"
+    if provider not in {"auto", "groq", "gemini"}:
+        raise RuntimeError("AI_PROVIDER는 auto, groq, gemini 중 하나여야 합니다.")
+    return provider
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     token: str
@@ -43,9 +50,13 @@ class Settings:
     log_level: str
     enable_member_intent: bool
     enable_message_content_intent: bool
+    ai_provider: str
+    groq_api_key: str | None
+    groq_model: str
+    groq_search_model: str
     gemini_api_key: str | None
     gemini_model: str
-    gemini_max_output_tokens: int
+    ai_max_output_tokens: int
     ai_daily_user_limit: int
 
     @classmethod
@@ -58,12 +69,15 @@ class Settings:
         raw_guild_id = os.getenv("DEV_GUILD_ID", "").strip()
         dev_guild_id = int(raw_guild_id) if raw_guild_id else None
         database_path = Path(os.getenv("DATABASE_PATH", "data/bot.db")).expanduser()
+        groq_api_key = os.getenv("GROQ_API_KEY", "").strip() or None
         gemini_api_key = (
             os.getenv("GEMINI_API_KEY", "").strip()
             or os.getenv("GOOGLE_API_KEY", "").strip()
             or None
         )
-        gemini_model = os.getenv("GEMINI_MODEL", "auto").strip() or "auto"
+        max_output_value = os.getenv("AI_MAX_OUTPUT_TOKENS")
+        if max_output_value is None:
+            max_output_value = os.getenv("GEMINI_MAX_OUTPUT_TOKENS")
 
         return cls(
             token=token,
@@ -75,10 +89,17 @@ class Settings:
             enable_message_content_intent=_as_bool(
                 os.getenv("ENABLE_MESSAGE_CONTENT_INTENT"), True
             ),
+            ai_provider=_ai_provider(os.getenv("AI_PROVIDER")),
+            groq_api_key=groq_api_key,
+            groq_model=os.getenv("GROQ_MODEL", "auto").strip() or "auto",
+            groq_search_model=(
+                os.getenv("GROQ_SEARCH_MODEL", "groq/compound-mini").strip()
+                or "groq/compound-mini"
+            ),
             gemini_api_key=gemini_api_key,
-            gemini_model=gemini_model,
-            gemini_max_output_tokens=_as_int(
-                os.getenv("GEMINI_MAX_OUTPUT_TOKENS"),
+            gemini_model=os.getenv("GEMINI_MODEL", "auto").strip() or "auto",
+            ai_max_output_tokens=_as_int(
+                max_output_value,
                 1200,
                 minimum=200,
                 maximum=8000,
