@@ -61,6 +61,20 @@ def test_ai_quota_is_atomic_and_refundable(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
+def test_ai_quota_zero_is_unlimited_and_counted(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        db = Database(tmp_path / "bot.db")
+        await db.initialize()
+        for expected in range(1, 4):
+            allowed, used = await db.consume_ai_quota(
+                user_id=5, guild_id=6, usage_date="2026-08-01", limit=0
+            )
+            assert allowed is True
+            assert used == expected
+
+    asyncio.run(scenario())
+
+
 def test_study_group_capacity(tmp_path: Path) -> None:
     async def scenario() -> None:
         db = Database(tmp_path / "bot.db")
