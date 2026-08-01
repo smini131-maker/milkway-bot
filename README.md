@@ -1,6 +1,6 @@
 # 🌌 Milkway Bot
 
-`Milkway Bot`은 Discord 서버 운영 기능과 대학생용 일정·학습 도구, 선택형 GPT 연동을 한 프로젝트에 묶은 Python 봇입니다. 모든 주요 기능은 슬래시 명령어로 조작하고, 예약·과제·시험·시간표·출석·스터디·사용량 데이터는 SQLite에 저장되어 재시작 후에도 유지됩니다.
+`Milkway Bot`은 Discord 서버 운영 기능과 대학생용 일정·학습 도구, 선택형 **Gemini AI 및 Google 검색** 기능을 한 프로젝트에 묶은 Python 봇입니다. 모든 주요 기능은 슬래시 명령어로 조작하고, 예약·과제·시험·시간표·출석·스터디·사용량 데이터는 SQLite에 저장되어 재시작 후에도 유지됩니다.
 
 ## 주요 기능
 
@@ -17,11 +17,12 @@
 - **팀플**: 이름 목록을 무작위로 균형 있게 팀 편성
 - **집중 관리**: 포모도로 집중·휴식 리마인더 일괄 등록
 
-### 🤖 GPT 학습 도우미
+### 🤖 Gemini 학습·검색 도우미
 
-`OPENAI_API_KEY`를 설정하면 다음 명령이 활성화됩니다. 키가 없어도 AI를 제외한 기능은 모두 정상 작동합니다.
+`GEMINI_API_KEY`를 설정하면 다음 명령이 활성화됩니다. 키가 없어도 AI를 제외한 기능은 모두 정상 작동합니다.
 
 - 일반 질문과 개념 설명: `/ai ask`
+- **최신 정보 Google 검색 및 출처 표시**: `/ai search`
 - 강의 노트 핵심·시험대비·발표·회의록 요약: `/ai summarize`
 - 현재 채널 최근 대화를 회의록으로 정리: `/ai channel_summary`
 - 시험일까지 학습 계획 작성: `/ai study_plan`
@@ -31,7 +32,13 @@
 - 공모전·팀플 아이디어 구체화: `/ai brainstorm`
 - 모델과 일일 사용량 확인: `/ai usage`
 
-AI 입력은 응답을 생성하기 위해 OpenAI API로 전송됩니다. 프로젝트는 Responses API, `store=False`, 선택형 Moderation, 사용자별 일일 요청 제한을 사용합니다. API 사용료는 OpenAI 계정에 청구되므로 `AI_DAILY_USER_LIMIT`을 적절히 설정하세요.
+기본 모델은 무료 등급을 지원하는 `gemini-2.5-flash-lite`입니다. `/ai search`는 Gemini의 Google Search grounding을 사용하고, 답변 뒤에 실제 검색 출처 링크를 표시합니다.
+
+Google 공식 가격표 기준으로 Gemini 2.5 Flash와 Flash-Lite의 Google 검색 grounding은 무료 등급에서 두 모델 합산 하루 500회까지 제공됩니다. 무료 한도와 정책은 변경될 수 있으며, 한도를 넘으면 요청이 거절되거나 결제 설정에 따라 비용이 발생할 수 있습니다.
+
+- Gemini API 가격: <https://ai.google.dev/gemini-api/docs/pricing>
+- Google 검색 grounding: <https://ai.google.dev/gemini-api/docs/google-search>
+- API 키 발급: <https://aistudio.google.com/app/apikey>
 
 ### ⏰ 예약과 리마인더
 
@@ -59,7 +66,7 @@ AI 입력은 응답을 생성하기 위해 OpenAI API로 전송됩니다. 프로
 | 시간표 | `/timetable add`, `today`, `week`, `delete` |
 | 출석 | `/attendance record`, `status`, `reset` |
 | 스터디 | `/study create`, `list`, `join`, `leave`, `members`, `close` |
-| GPT | `/ai ask`, `summarize`, `channel_summary`, `study_plan`, `quiz`, `polish`, `translate`, `brainstorm`, `usage` |
+| Gemini | `/ai ask`, `search`, `summarize`, `channel_summary`, `study_plan`, `quiz`, `polish`, `translate`, `brainstorm`, `usage` |
 | 예약 | `/schedule interval`, `daily`, `weekly`, `once`, `list`, `pause`, `resume`, `edit`, `time`, `delete`, `run` |
 | 리마인더 | `/remind in`, `at`, `list`, `cancel` |
 | 메시지 | `/send`, `/announce`, `/poll` |
@@ -82,14 +89,34 @@ AI 입력은 응답을 생성하기 위해 OpenAI API로 전송됩니다. 프로
 
 ### 2. 실행
 
-#### Windows PowerShell
+#### Windows PowerShell — Git 설치됨
 
 ```powershell
 git clone https://github.com/smini131-maker/milkway-bot.git
 cd milkway-bot
-py -3.12 -m venv .venv
+python -m venv .venv
+Set-ExecutionPolicy -Scope Process Bypass
 .\.venv\Scripts\Activate.ps1
-pip install -e .
+python -m pip install --upgrade pip
+python -m pip install -e .
+Copy-Item .env.example .env
+notepad .env
+python -m discord_bot
+```
+
+#### Windows PowerShell — Git 없음
+
+```powershell
+cd $HOME\Desktop
+curl.exe -L "https://github.com/smini131-maker/milkway-bot/archive/refs/heads/main.zip" -o "milkway-bot.zip"
+Expand-Archive -Path ".\milkway-bot.zip" -DestinationPath "." -Force
+Rename-Item ".\milkway-bot-main" "milkway-bot"
+cd .\milkway-bot
+python -m venv .venv
+Set-ExecutionPolicy -Scope Process Bypass
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e .
 Copy-Item .env.example .env
 notepad .env
 python -m discord_bot
@@ -102,7 +129,8 @@ git clone https://github.com/smini131-maker/milkway-bot.git
 cd milkway-bot
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+python -m pip install --upgrade pip
+python -m pip install -e .
 cp .env.example .env
 nano .env
 python -m discord_bot
@@ -118,19 +146,20 @@ DEV_GUILD_ID=테스트_서버_ID
 DATABASE_PATH=data/bot.db
 ```
 
-GPT 기능 추가:
+Gemini 기능 추가:
 
 ```env
-OPENAI_API_KEY=발급받은_OpenAI_API_Key
-OPENAI_MODEL=gpt-5-mini
-OPENAI_MAX_OUTPUT_TOKENS=1200
-OPENAI_MODERATION_ENABLED=true
+GEMINI_API_KEY=Google_AI_Studio에서_발급받은_API_키
+GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_MAX_OUTPUT_TOKENS=1200
 AI_DAILY_USER_LIMIT=20
 ```
 
 - `DEV_GUILD_ID`: 개발 서버에 명령어를 즉시 동기화합니다. 배포 시 비우면 전역 등록됩니다.
-- `OPENAI_API_KEY`: OpenAI Platform의 프로젝트 API 키입니다. ChatGPT Plus 구독과 API 사용료는 별개입니다.
+- `GEMINI_API_KEY`: Google AI Studio에서 무료로 발급할 수 있습니다.
+- `GEMINI_MODEL`: 기본값은 무료 등급과 Google 검색 grounding을 지원하는 `gemini-2.5-flash-lite`입니다.
 - `AI_DAILY_USER_LIMIT`: 사용자 1명당 서버별 하루 AI 요청 수입니다.
+- `AI_DAILY_USER_LIMIT=0`: 봇 내부 사용자 제한을 해제합니다. Gemini 자체 무료 쿼터와 요청 속도 제한은 해제되지 않습니다.
 
 ## 사용 예시
 
@@ -141,6 +170,7 @@ AI_DAILY_USER_LIMIT=20
 /campus dashboard
 /campus gpa grades:자료구조=3:A+, 교양=2:B0, 영어=2:A0
 /study create title:공업수학 시험대비 description:매주 기출문제 풀이 max_members:6
+/ai search query:오늘 발표된 주요 AI 뉴스 알려줘
 /ai study_plan subject:회로이론 중간고사 deadline:2026-10-25 daily_minutes:90
 /ai quiz material:여기에 강의 노트를 붙여넣기 count:7 difficulty:보통
 ```
@@ -159,7 +189,7 @@ SQLite는 `./data`에 보존됩니다.
 ## 테스트
 
 ```bash
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 ruff check .
 pytest
 ```
@@ -172,17 +202,19 @@ GitHub Actions는 `main` push와 Pull Request에서 Python 3.11·3.12로 검사�
 
 ## 보안과 개인정보
 
-- `.env`, Discord Token, OpenAI API Key를 커밋하지 마세요.
-- 키가 노출되면 즉시 재발급하세요.
+- `.env`, Discord Token, Gemini API Key를 커밋하지 마세요.
+- 키가 노출되면 Google AI Studio에서 즉시 폐기하고 새로 발급하세요.
 - 봇에게 Administrator 대신 필요한 권한만 부여하세요.
-- `/ai channel_summary`는 명령을 실행한 채널의 최근 텍스트를 OpenAI API로 전송합니다.
+- `/ai channel_summary`는 명령을 실행한 채널의 최근 텍스트를 Gemini API로 전송합니다.
+- `/ai search`는 질문을 Gemini API와 Google 검색 grounding에 전송합니다.
+- Gemini 무료 등급에 전송된 데이터는 Google 제품 개선에 사용될 수 있습니다. 민감한 수업 자료나 개인정보를 입력하지 마세요.
 - 민감정보, 학번, 비밀번호, 개인 연락처를 AI 명령에 입력하지 마세요.
-- AI 답변은 사실 오류가 있을 수 있으므로 과제 제출 전 직접 검증하세요.
+- AI와 검색 답변은 오류가 있을 수 있으므로 과제 제출 전 출처를 직접 확인하세요.
 - `data/bot.db`를 정기적으로 백업하세요.
 
 ## 변경 내역
 
-[CHANGELOG.md](CHANGELOG.md)에서 대학생 기능과 GPT 연동 패치를 확인할 수 있습니다.
+[CHANGELOG.md](CHANGELOG.md)에서 Gemini 전환과 Google 검색 패치를 확인할 수 있습니다.
 
 ## 라이선스
 
