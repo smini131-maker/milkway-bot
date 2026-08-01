@@ -61,10 +61,7 @@ class Settings:
             or os.getenv("GOOGLE_API_KEY", "").strip()
             or None
         )
-        gemini_model = (
-            os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
-            or "gemini-2.5-flash"
-        )
+        gemini_model = os.getenv("GEMINI_MODEL", "auto").strip() or "auto"
 
         return cls(
             token=token,
