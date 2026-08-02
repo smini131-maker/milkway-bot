@@ -6,7 +6,7 @@
 
 [Milkway Bot을 Discord 서버에 초대하기](https://discord.com/oauth2/authorize?client_id=1533024340155699290&permissions=1374658194518&integration_type=0&scope=bot%20applications.commands)
 
-## 간단 명령어
+## 주요 명령어
 
 | 분류 | 명령어 |
 |---|---|
@@ -22,75 +22,33 @@
 | 관리 | `/관리 정리`, `/관리 제한`, `/관리 제한해제`, `/관리 추방`, `/관리 차단`, `/관리 차단해제`, `/관리 슬로우`, `/관리 경고`, `/관리 경고목록`, `/관리 경고초기화` |
 | 기타 | `/도움말`, `/초대`, `/핑`, `/서버`, `/사용자`, `/아바타`, `/선택`, `/주사위`, `/동전`, `/시간` |
 
-기존의 긴 이름은 다음처럼 바뀌었습니다.
+## 환경설정
 
-```text
-/인공지능 질문   → /질문
-/인공지능 검색   → /검색
-/인공지능 요약   → /요약
-/인공지능 퀴즈   → /퀴즈
-/인공지능 사용량 → /상태
-/대학생 한눈에   → /학교 오늘
-/관리 타임아웃   → /관리 제한
-/관리 삭제       → /관리 정리
-/서버정보        → /서버
-/사용자정보      → /사용자
-```
-
-봇을 업데이트하고 재시작하면 개발 서버에서는 새 명령어가 즉시 동기화됩니다. Discord에 예전 명령어가 잠시 보이면 `Ctrl + R`로 새로고침하세요.
-
-## 봇 표시 이름
-
-기본 예시는 `Milkway Bot`입니다.
+`.env.example`을 `.env`로 복사한 뒤 실제 값을 입력합니다.
 
 ```env
+DISCORD_TOKEN=Discord_봇_토큰
+DEV_GUILD_ID=명령어를_쓸_서버_ID
 BOT_DISPLAY_NAME=Milkway Bot
-```
+DATABASE_PATH=data/bot.db
+LOG_LEVEL=INFO
+ENABLE_MEMBER_INTENT=true
+ENABLE_MESSAGE_CONTENT_INTENT=true
 
-이 값을 비워두면 Discord Developer Portal과 서버에 설정된 현재 이름을 코드가 변경하지 않습니다.
-
-```env
-BOT_DISPLAY_NAME=
-```
-
-## 권장 무료 공급자: Groq Cloud
-
-Groq 무료 플랜은 일반 대화 모델과 웹 검색이 가능한 Compound 모델을 API 키로 사용할 수 있습니다. 봇은 `GROQ_API_KEY`가 있으면 Groq를 우선 사용하고, 일반 모델은 계정에 실제로 열린 모델 중에서 자동 선택합니다.
-
-### Groq API 키 만들기
-
-1. Groq Cloud Console에 로그인합니다.
-2. `API Keys`로 이동합니다.
-3. `Create API Key`를 누릅니다.
-4. 생성된 `gsk_`로 시작하는 키를 복사합니다.
-5. 키를 Discord, GitHub, 채팅에 공개하지 않습니다.
-
-### `.env` 설정
-
-```env
-AI_PROVIDER=auto
-
+AI_PROVIDER=groq
 GROQ_API_KEY=gsk_실제_키
 GROQ_MODEL=auto
 GROQ_SEARCH_MODEL=groq/compound-mini
 
-# 기존 Gemini 키는 선택적으로 보조 공급자로 남겨둘 수 있습니다.
 GEMINI_API_KEY=
 GEMINI_MODEL=auto
-
 AI_MAX_OUTPUT_TOKENS=1200
 AI_DAILY_USER_LIMIT=20
 ```
 
-`AI_PROVIDER=auto`는 Groq 키가 있으면 Groq를 사용하고, Groq 키가 없을 때만 Gemini를 사용합니다. Groq만 강제로 사용하려면 다음처럼 설정합니다.
+Groq 키가 있으면 일반 질문에는 계정에 실제로 열린 모델을 자동 선택하고, `/검색`에는 `groq/compound-mini`를 사용합니다.
 
-```env
-AI_PROVIDER=groq
-```
-
-## Windows 설치 및 실행
-
-PowerShell에서 한 줄씩 실행합니다.
+## Windows 설치 및 시험
 
 ```powershell
 cd $HOME\Desktop
@@ -109,30 +67,33 @@ python -m discord_bot
 
 Windows가 종료되거나 절전 상태가 되면 봇도 오프라인이 됩니다.
 
-## 기존 설치 업데이트
-
-`.env`와 `data`를 백업한 뒤 최신 ZIP을 다시 받습니다. Git으로 설치했다면 다음 명령을 사용합니다.
-
-```bash
-git pull
-.venv/bin/python -m pip install -e .
-```
-
-업데이트 후 버전 확인:
+버전 확인:
 
 ```powershell
 python -c "import discord_bot; print(discord_bot.__version__)"
 ```
 
-정상 버전:
+현재 버전:
 
 ```text
-1.5.2
+1.5.4
 ```
 
-## Oracle Cloud 무료 상시 실행
+## Google Cloud Always Free 24시간 실행
 
-이 봇은 SQLite에 과제·시간표·예약 정보를 저장하므로 영구 디스크가 있는 Oracle Cloud Always Free Ubuntu VM을 권장합니다.
+Google Cloud Compute Engine 무료 등급의 `e2-micro` VM을 사용합니다. 무료 대상 리전은 `us-west1`, `us-central1`, `us-east1` 중 하나여야 하며, 부팅 디스크는 표준 영구 디스크 30GB 이하로 설정합니다.
+
+권장 VM 설정:
+
+```text
+이름: milkway-bot
+리전: us-west1 / us-central1 / us-east1 중 하나
+머신 유형: e2-micro
+이미지: Debian 12 또는 Ubuntu 24.04 LTS
+부팅 디스크: Standard persistent disk, 30GB 이하
+```
+
+VM을 만든 뒤 Google Cloud 콘솔의 `SSH` 버튼으로 접속합니다.
 
 ```bash
 sudo apt-get update
@@ -141,13 +102,22 @@ git clone https://github.com/smini131-maker/milkway-bot.git
 cd milkway-bot
 cp .env.example .env
 nano .env
-bash deploy/install-oracle-cloud.sh
+bash deploy/install-google-cloud.sh
 ```
+
+설치 스크립트는 e2-micro의 약 1GB 메모리를 보완하기 위해 1GB 스왑을 만들고, `systemd` 부팅 자동 실행과 오류 자동 재시작을 설정합니다.
 
 상태 확인:
 
 ```bash
-sudo systemctl status milkway-bot
+sudo systemctl status milkway-bot --no-pager
+sudo systemctl is-enabled milkway-bot
+sudo systemctl is-active milkway-bot
+```
+
+실시간 로그:
+
+```bash
 sudo journalctl -u milkway-bot -f
 ```
 
@@ -160,7 +130,9 @@ git pull
 sudo systemctl restart milkway-bot
 ```
 
-## 질문·검색 동작 확인
+SQLite 데이터는 VM의 `data/bot.db`에 저장됩니다. VM을 삭제하기 전에는 반드시 백업하세요.
+
+## 질문·검색 확인
 
 Discord에서 순서대로 실행합니다.
 
@@ -172,11 +144,9 @@ Discord에서 순서대로 실행합니다.
 
 `/상태`에는 현재 공급자, 일반 모델, 검색 모델이 표시됩니다.
 
-Groq 기본 검색 모델은 `groq/compound-mini`이며, 사용 불가 시 `groq/compound`로 한 번 자동 교체합니다. 일반 모델도 종료되거나 404가 발생하면 계정에 열린 다른 모델로 자동 재선택합니다.
-
 ## 보안
 
-- `.env`, Discord Bot Token, Groq API Key, Gemini API Key, Oracle SSH 개인 키를 GitHub에 올리지 마세요.
+- `.env`, Discord Bot Token, Groq API Key, Gemini API Key를 GitHub에 올리지 마세요.
 - 키가 노출되면 즉시 해당 공급자 콘솔에서 폐기하고 새로 만드세요.
 - 질문 기능에 학번, 비밀번호, 연락처 같은 민감정보를 입력하지 마세요.
 
