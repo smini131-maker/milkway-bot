@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.5.4 - 2026-08-02
+
+### Google Cloud 무료 상시 실행
+
+- Google Cloud Compute Engine Always Free `e2-micro`용 설치 스크립트 추가
+- 메모리 약 1GB 환경에서 설치와 재시작이 안정적으로 끝나도록 1GB 스왑 자동 구성
+- `systemd` 부팅 자동 실행과 오류 시 5초 뒤 재시작 설정
+- SQLite 데이터가 VM 영구 디스크에 유지되도록 기존 구조 그대로 사용
+
+## 1.5.3 - 2026-08-02
+
+### Groq 응답 정리
+
+- Qwen 계열 모델의 내부 추론 출력을 숨김
+- `<think>` 및 `Thinking Process` 형태가 남아도 사용자 응답에서 제거
+- Groq Compound의 `search_results.results` 구조에서 실제 검색 출처 추출
+
 ## 1.5.2 - 2026-08-02
 
 ### 질문 명령어 축약
