@@ -274,7 +274,13 @@ def _postgres_placeholders(sql: str) -> str:
         index += 1
         return f"${index}"
 
-    return re.sub(r"\?", replacement, sql)
+    converted = re.sub(r"\?", replacement, sql)
+    return re.sub(
+        r"CURRENT_TIMESTAMP(?!\s*::)",
+        "(CURRENT_TIMESTAMP::TEXT)",
+        converted,
+        flags=re.IGNORECASE,
+    )
 
 
 def _insert_table(sql: str) -> str | None:
