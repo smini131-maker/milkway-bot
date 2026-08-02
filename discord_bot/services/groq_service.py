@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -26,6 +27,7 @@ _PREFERRED_MODELS = (
     "llama-3.1-8b-instant",
 )
 _SEARCH_FALLBACKS = ("groq/compound-mini", "groq/compound")
+_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>\s*", re.IGNORECASE | re.DOTALL)
 
 
 def _normalize_model_name(value: object) -> str:
@@ -57,14 +59,25 @@ def _value(item: object, name: str, default: object = None) -> object:
     return getattr(item, name, default)
 
 
+def _search_result_items(search_results: object) -> list[object]:
+    if not search_results:
+        return []
+    nested = _value(search_results, "results", None)
+    if nested is not None:
+        return list(nested or [])
+    if isinstance(search_results, (list, tuple)):
+        return list(search_results)
+    return []
+
+
 def _extract_groq_sources(message: object, *, maximum: int = 6) -> tuple[AISource, ...]:
     tools = _value(message, "executed_tools", []) or []
     sources: list[AISource] = []
     seen_urls: set[str] = set()
 
     for tool in tools:
-        results = _value(tool, "search_results", []) or []
-        for result in results:
+        search_results = _value(tool, "search_results", []) or []
+        for result in _search_result_items(search_results):
             url = str(_value(result, "url", "") or _value(result, "uri", "") or "").strip()
             if not url or url in seen_urls:
                 continue
@@ -74,6 +87,20 @@ def _extract_groq_sources(message: object, *, maximum: int = 6) -> tuple[AISourc
             if len(sources) >= maximum:
                 return tuple(sources)
     return tuple(sources)
+
+
+def _clean_model_output(value: object) -> str:
+    output = str(value or "").strip()
+    output = _THINK_BLOCK_RE.sub("", output).strip()
+
+    # 일부 추론 모델은 여는 태그 없이 Thinking Process를 쓰고 </think>로 끝내기도 합니다.
+    lowered = output.lower()
+    if "</think>" in lowered:
+        tail = output[lowered.rfind("</think>") + len("</think>") :].strip()
+        if tail:
+            output = tail
+
+    return output.strip()
 
 
 @dataclass(slots=True)
@@ -194,14 +221,18 @@ class GroqService:
         if self._client is None:
             raise AIUnavailableError("AI 기능이 비활성화되어 있습니다. GROQ_API_KEY를 설정하세요.")
 
-        return await self._client.chat.completions.create(
-            model=model,
-            messages=[
+        request: dict[str, object] = {
+            "model": model,
+            "messages": [
                 {"role": "system", "content": instructions},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=max_output_tokens or self.max_output_tokens,
-        )
+            "max_tokens": max_output_tokens or self.max_output_tokens,
+        }
+        if model.startswith("qwen/"):
+            request["reasoning_format"] = "hidden"
+
+        return await self._client.chat.completions.create(**request)
 
     async def generate(
         self,
@@ -254,7 +285,7 @@ class GroqService:
                 raise self._user_facing_error(exc, use_search=use_search) from exc
 
         message = response.choices[0].message if response.choices else None
-        output = str(_value(message, "content", "") or "").strip()
+        output = _clean_model_output(_value(message, "content", ""))
         if not output:
             raise AIRequestError("Groq가 빈 응답을 반환했습니다. 다시 시도해 주세요.")
 
