@@ -45,6 +45,7 @@ def _ai_provider(value: str | None) -> str:
 class Settings:
     token: str
     database_path: Path
+    database_url: str | None
     dev_guild_id: int | None
     bot_display_name: str | None
     log_level: str
@@ -69,6 +70,11 @@ class Settings:
         raw_guild_id = os.getenv("DEV_GUILD_ID", "").strip()
         dev_guild_id = int(raw_guild_id) if raw_guild_id else None
         database_path = Path(os.getenv("DATABASE_PATH", "data/bot.db")).expanduser()
+        database_url = (
+            os.getenv("DATABASE_URL", "").strip()
+            or os.getenv("POSTGRES_URI", "").strip()
+            or None
+        )
         groq_api_key = os.getenv("GROQ_API_KEY", "").strip() or None
         gemini_api_key = (
             os.getenv("GEMINI_API_KEY", "").strip()
@@ -82,6 +88,7 @@ class Settings:
         return cls(
             token=token,
             database_path=database_path,
+            database_url=database_url,
             dev_guild_id=dev_guild_id,
             bot_display_name=_display_name(os.getenv("BOT_DISPLAY_NAME")),
             log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
