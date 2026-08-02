@@ -1,13 +1,22 @@
 # Changelog
 
+## 1.5.5 - 2026-08-02
+
+### 카드 없는 무료 24시간 호스팅
+
+- Wispbyte 패널에서 바로 실행할 수 있는 최상위 `run.py` 추가
+- `.env`와 가상환경을 제외하고 기존 SQLite 데이터는 포함하는 업로드 ZIP 생성 스크립트 추가
+- 무료 Python 서버의 환경변수·시작 파일 방식에 맞춰 배포 문서 개편
+- 잘못 권장했던 Google Cloud 무료 VM 배포 스크립트 제거
+
 ## 1.5.4 - 2026-08-02
 
-### Google Cloud 무료 상시 실행
+### 호스팅 데이터베이스 호환
 
-- Google Cloud Compute Engine Always Free `e2-micro`용 설치 스크립트 추가
-- 메모리 약 1GB 환경에서 설치와 재시작이 안정적으로 끝나도록 1GB 스왑 자동 구성
-- `systemd` 부팅 자동 실행과 오류 시 5초 뒤 재시작 설정
-- SQLite 데이터가 VM 영구 디스크에 유지되도록 기존 구조 그대로 사용
+- 로컬과 파일형 호스팅에서는 기존 SQLite 유지
+- `DATABASE_URL` 또는 `POSTGRES_URI`가 있으면 PostgreSQL 자동 사용
+- 컨테이너 호스팅을 위한 `asyncpg`와 PostgreSQL 스키마 추가
+- PostgreSQL 연결 풀을 봇 종료 시 안전하게 닫도록 수정
 
 ## 1.5.3 - 2026-08-02
 
