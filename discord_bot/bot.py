@@ -97,7 +97,7 @@ class UtilityBot(commands.Bot):
             tree_cls=UtilityCommandTree,
         )
         self.settings = settings
-        self.db = Database(settings.database_path)
+        self.db = Database(settings.database_path, settings.database_url)
         self.ai = AIService(
             provider=settings.ai_provider,
             groq_api_key=settings.groq_api_key,
@@ -244,6 +244,7 @@ class UtilityBot(commands.Bot):
 
     async def close(self) -> None:
         await self.ai.close()
+        await self.db.close()
         await super().close()
 
     async def setup_hook(self) -> None:
