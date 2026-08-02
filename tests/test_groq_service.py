@@ -1,7 +1,11 @@
 from types import SimpleNamespace
 
 from discord_bot.services.gemini_service import AISource
-from discord_bot.services.groq_service import _choose_groq_model, _extract_groq_sources
+from discord_bot.services.groq_service import (
+    _choose_groq_model,
+    _clean_model_output,
+    _extract_groq_sources,
+)
 
 
 def test_choose_groq_model_prefers_current_multilingual_model() -> None:
@@ -30,15 +34,17 @@ def test_choose_groq_model_honors_configured_and_excluded() -> None:
     )
 
 
-def test_extract_groq_sources_deduplicates_urls() -> None:
+def test_extract_groq_sources_handles_nested_results_and_deduplicates() -> None:
     message = SimpleNamespace(
         executed_tools=[
             SimpleNamespace(
-                search_results=[
-                    {"title": "공식 문서", "url": "https://example.com/a"},
-                    {"title": "중복", "url": "https://example.com/a"},
-                    {"title": "두 번째", "url": "https://example.com/b"},
-                ]
+                search_results={
+                    "results": [
+                        {"title": "공식 문서", "url": "https://example.com/a"},
+                        {"title": "중복", "url": "https://example.com/a"},
+                        {"title": "두 번째", "url": "https://example.com/b"},
+                    ]
+                }
             )
         ]
     )
@@ -47,3 +53,12 @@ def test_extract_groq_sources_deduplicates_urls() -> None:
         AISource(title="공식 문서", url="https://example.com/a"),
         AISource(title="두 번째", url="https://example.com/b"),
     )
+
+
+def test_clean_model_output_removes_think_block() -> None:
+    assert _clean_model_output("<think>private reasoning</think>\n\nOK") == "OK"
+
+
+def test_clean_model_output_removes_unmatched_thinking_prefix() -> None:
+    value = "Thinking Process:\n1. reason\n</think>\n\nOK"
+    assert _clean_model_output(value) == "OK"
