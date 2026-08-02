@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "milkway-bot"
 version = "1.5.4"
-description = "A Discord campus assistant with concise Korean commands, scheduling, moderation, free Groq or Gemini AI integration, and Google Cloud deployment."
+description = "A Discord campus assistant with concise Korean commands, free Groq or Gemini AI, SQLite locally, and PostgreSQL hosting support."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -14,6 +14,7 @@ dependencies = [
   "discord.py==2.7.1",
   "python-dotenv>=1.0,<2.0",
   "tzdata>=2025.2",
+  "asyncpg>=0.30,<1.0",
   "groq>=1.3,<2.0",
   "google-genai>=2.13,<3.0",
 ]
